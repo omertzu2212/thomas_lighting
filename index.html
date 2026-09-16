@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מעקב עמלות אדריכלים</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;600;700&family=Heebo:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.22.0/lib/msal-browser.min.js"></script>
+<style>
+  :root{
+    --bg:#faf7f2;
+    --surface:#ffffff;
+    --surface-2:#f2ebdd;
+    --border:#e5d9c3;
+    --text:#2a2019;
+    --text-muted:#79695a;
+    --accent:#a9762c;
+    --accent-hover:#8d6222;
+    --accent-fg:#fffaf1;
+    --accent-soft:#f4e3c3;
+    --danger:#a8442e;
+    --danger-soft:#f6ddd5;
+    --shadow:0 10px 30px -12px rgba(41,28,12,.25);
+    --st-ordered-bg:#dde8f6; --st-ordered-fg:#2c5b8c;
+    --st-delivered-bg:#dcefe9; --st-delivered-fg:#1c6e5c;
+    --st-open-bg:#faead0; --st-open-fg:#8a5a0a;
+    --st-closed-bg:#e1f0e0; --st-closed-fg:#286a3a;
+    --font-display:'Frank Ruhl Libre','Times New Roman',serif;
+    --font-body:'Heebo','Segoe UI',Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#19140f;
+      --surface:#221b14;
+      --surface-2:#2b2218;
+      --border:#3c2f21;
+      --text:#f2e9db;
+      --text-muted:#b3a28c;
+      --accent:#dba85a;
+      --accent-hover:#eabb73;
+      --accent-fg:#221a0f;
+      --accent-soft:#3a2c17;
+      --danger:#e08a6e;
+      --danger-soft:#3a2019;
+      --shadow:0 10px 30px -12px rgba(0,0,0,.5);
+      --st-ordered-bg:#1c2c3d; --st-ordered-fg:#9dc2ea;
+      --st-delivered-bg:#153229; --st-delivered-fg:#7fd3ba;
+      --st-open-bg:#3a2c10; --st-open-fg:#eec27f;
+      --st-closed-bg:#173a20; --st-closed-fg:#8fdb9c;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#19140f;
+    --surface:#221b14;
+    --surface-2:#2b2218;
+    --border:#3c2f21;
+    --text:#f2e9db;
+    --text-muted:#b3a28c;
+    --accent:#dba85a;
+    --accent-hover:#eabb73;
+    --accent-fg:#221a0f;
+    --accent-soft:#3a2c17;
+    --danger:#e08a6e;
+    --danger-soft:#3a2019;
+    --shadow:0 10px 30px -12px rgba(0,0,0,.5);
+    --st-ordered-bg:#1c2c3d; --st-ordered-fg:#9dc2ea;
+    --st-delivered-bg:#153229; --st-delivered-fg:#7fd3ba;
+    --st-open-bg:#3a2c10; --st-open-fg:#eec27f;
+    --st-closed-bg:#173a20; --st-closed-fg:#8fdb9c;
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  .app{
+    font-family:var(--font-body);
+    direction:rtl;
+    max-width:1440px;
+    margin:0 auto;
+    padding:28px 20px 64px;
+    color:var(--text);
+  }
+  h1,h2{font-family:var(--font-display);font-weight:600;text-wrap:balance;margin:0;}
+  a{color:var(--accent);}
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    flex-wrap:wrap;margin-bottom:24px;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    font-size:30px;line-height:1;
+    width:52px;height:52px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--accent-soft);
+    box-shadow:inset 0 0 0 1px var(--border);
+  }
+  .brand-text h1{font-size:24px;}
+  .brand-text p{margin:2px 0 0;color:var(--text-muted);font-size:13.5px;}
+
+  .btn{
+    font-family:var(--font-body);font-size:14.5px;font-weight:600;
+    border-radius:10px;padding:10px 16px;border:1px solid transparent;
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent);color:var(--accent-fg);}
+  .btn-primary:hover{background:var(--accent-hover);}
+  .btn-ghost{background:transparent;border-color:var(--border);color:var(--text);}
+  .btn-ghost:hover{background:var(--surface-2);}
+  .icon{font-size:16px;font-weight:700;}
+  button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+
+  .banner{
+    background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger);
+    border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:18px;
+  }
+  .banner.info{
+    background:var(--accent-soft);color:var(--accent-hover);border:1px solid var(--accent);
+  }
+
+  /* ---------- stats ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:12px;margin-bottom:26px;
+  }
+  .stat-tile{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow);
+  }
+  .stat-tile .label{font-size:12.5px;color:var(--text-muted);margin-bottom:8px;}
+  .stat-tile .value{
+    font-family:var(--font-display);font-size:23px;font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat-tile.warn .value{color:var(--st-open-fg);}
+  .stat-tile.good .value{color:var(--st-closed-fg);}
+
+  /* ---------- panels ---------- */
+  .panel{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:20px 20px 8px;margin-bottom:22px;box-shadow:var(--shadow);
+  }
+  .panel-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin-bottom:14px;flex-wrap:wrap;
+  }
+  .panel-head h2{font-size:18px;}
+  .muted{color:var(--text-muted);font-size:13px;}
+
+  .table-scroll{overflow-x:auto;padding-bottom:12px;}
+  table{border-collapse:collapse;width:100%;min-width:0;}
+  thead th{
+    text-align:right;font-size:12.5px;color:var(--text-muted);font-weight:600;
+    padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+    position:sticky;top:0;background:var(--surface);
+  }
+  .orders-table thead th[data-key]{cursor:pointer;user-select:none;}
+  .orders-table thead th[data-key]:hover{color:var(--text);}
+  .orders-table thead th.sorted-asc::after{content:" ▲";font-size:9px;}
+  .orders-table thead th.sorted-desc::after{content:" ▼";font-size:9px;}
+  tbody td{
+    padding:10px 10px;border-bottom:1px solid var(--border);font-size:13.5px;
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:var(--surface-2);}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.num.due{color:var(--st-open-fg);font-weight:600;}
+  .money-cell{font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.55;}
+  .money-cell .sub{color:var(--text-muted);font-size:11.5px;margin-top:0;}
+  .money-cell .sub.due{color:var(--st-open-fg);font-weight:600;}
+  .sub{color:var(--text-muted);font-size:11.5px;margin-top:2px;}
+  .tag-example{
+    margin-inline-start:6px;font-size:10.5px;border:1px dashed var(--text-muted);
+    color:var(--text-muted);border-radius:999px;padding:1px 7px;
+  }
+  .actions{white-space:nowrap;}
+  .icon-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    width:30px;height:30px;cursor:pointer;font-size:13px;margin-inline-start:4px;
+    color:var(--text);
+  }
+  .icon-btn:hover{background:var(--surface-2);}
+  .icon-btn.danger:hover{background:var(--danger-soft);border-color:var(--danger);color:var(--danger);}
+  .detail-row td{background:var(--surface-2);font-size:13px;color:var(--text-muted);}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 22px;}
+  .detail-grid b{color:var(--text);font-weight:600;}
+
+  .pill{
+    display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:600;
+    white-space:nowrap;
+  }
+  .st-ordered{background:var(--st-ordered-bg);color:var(--st-ordered-fg);}
+  .st-delivered{background:var(--st-delivered-bg);color:var(--st-delivered-fg);}
+  .st-open{background:var(--st-open-bg);color:var(--st-open-fg);}
+  .st-closed{background:var(--st-closed-bg);color:var(--st-closed-fg);}
+
+  .empty-state{color:var(--text-muted);text-align:center;padding:26px 0;}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+  .toolbar input[type="search"], .toolbar select, .toolbar input[type="date"]{
+    font-family:var(--font-body);font-size:13.5px;padding:9px 12px;
+    border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);
+  }
+  .toolbar input[type="search"]{flex:1 1 220px;min-width:180px;}
+  .date-range{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-muted);}
+  .date-range input[type="date"]{padding:8px 10px;font-size:13px;}
+  .chip-group{display:flex;gap:6px;}
+  .chip{
+    font-family:var(--font-body);font-size:13px;padding:8px 14px;border-radius:999px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;
+  }
+  .chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-hover);font-weight:600;}
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,14,6,.45);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 16px;overflow-y:auto;z-index:50;
+  }
+  .modal{
+    background:var(--surface);border-radius:16px;max-width:720px;width:100%;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.4);border:1px solid var(--border);
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--border);
+  }
+  .modal-head h2{font-size:19px;}
+  form{padding:18px 22px 22px;}
+  fieldset{border:none;padding:0;margin:0 0 18px;}
+  legend{
+    font-size:12.5px;font-weight:700;color:var(--accent-hover);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;padding:0;
+  }
+  .form-row{display:grid;gap:12px 14px;margin-bottom:14px;}
+  .form-row.cols-2{grid-template-columns:1fr 1fr;}
+  .form-row.cols-3{grid-template-columns:repeat(3,1fr);}
+  .form-row.cols-4{grid-template-columns:repeat(4,1fr);}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span-2{grid-column:1 / -1;}
+  .field label{font-size:12.5px;color:var(--text-muted);}
+  .field input, .field select{
+    font-family:var(--font-body);font-size:14px;padding:9px 11px;
+    border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);
+    width:100%;
+  }
+  .field .hint{font-size:11px;color:var(--text-muted);min-height:14px;}
+  .field .hint.warn{color:var(--danger);}
+  .hint-spacer{font-size:12.5px;line-height:1;visibility:hidden;}
+  .input-with-action{display:flex;align-items:center;gap:6px;}
+  .input-with-action input{flex:1;}
+  .field input.locked{background:var(--surface-2);color:var(--text-muted);cursor:not-allowed;}
+  .icon-btn{
+    flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text);cursor:pointer;font-size:15px;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .icon-btn:hover{background:var(--surface-2);}
+  .checkbox-label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text);cursor:pointer;}
+  .checkbox-label input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);flex:none;}
+  .modal-actions{display:flex;justify-content:flex-start;gap:10px;margin-top:6px;}
+
+  .arch-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+  .arch-summary-tile{background:var(--surface-2);border-radius:10px;padding:12px 14px;}
+  .arch-summary-tile .muted{font-size:12px;display:block;margin-bottom:4px;}
+  .arch-summary-value{font-family:var(--font-display);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .realizations-title{font-size:13.5px;color:var(--text-muted);margin:0 0 8px;font-weight:600;}
+  @media (max-width:640px){ .arch-summary{grid-template-columns:1fr;} }
+
+  .notify-cell{display:flex;flex-direction:row;gap:4px;}
+  .ntoggle{
+    font-family:var(--font-body);font-size:11.5px;font-weight:600;border-radius:6px;border:none;
+    width:28px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;padding:0;
+  }
+  .ntoggle.done{background:var(--st-closed-bg);color:var(--st-closed-fg);}
+  .ntoggle.pending{background:var(--st-open-bg);color:var(--st-open-fg);}
+
+  @media (max-width:640px){
+    .form-row.cols-2, .form-row.cols-3, .form-row.cols-4{grid-template-columns:1fr;}
+    table{min-width:600px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .btn, .icon-btn{transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app" dir="rtl" lang="he">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">💡</span>
+      <div class="brand-text">
+        <h1>מעקב עמלות אדריכלים</h1>
+        <p>תומס תאורה · הזמנות, תשלומים ועמלות לפי מצב טיפול</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div id="msAccountBox" hidden style="display:flex;align-items:center;gap:8px;">
+        <span class="muted" id="msAccountLabel" style="font-size:12.5px;"></span>
+        <button type="button" class="btn btn-ghost" id="btnMsSignOut" style="padding:6px 12px;font-size:12.5px;">התנתקות</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNew"><span class="icon">+</span> הזמנה חדשה</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>לפי אדריכל</h2>
+      <span class="muted" id="architectCount"></span>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="architectSearch" placeholder="חיפוש לפי שם אדריכל או אופן מימוש…" />
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>אדריכל</th>
+            <th>מס׳ הזמנות</th>
+            <th>סה״כ מכירות</th>
+            <th>עמלה לתשלום</th>
+            <th>שולם</th>
+            <th>יתרה</th>
+            <th>תקציב שיווק</th>
+            <th>שיווק שמומש</th>
+            <th>יתרה למימוש</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="architectBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>הזמנות</h2>
+      <button type="button" class="btn btn-ghost" id="btnClearExamples" hidden>נקה נתוני דוגמה</button>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="חיפוש לפי לקוח, אדריכל, מספר הזמנה…" />
+      <select id="filterArchitect"><option value="all">כל האדריכלים</option></select>
+      <div class="date-range">
+        <label for="filterDateFrom">מתאריך</label>
+        <input type="date" id="filterDateFrom">
+        <label for="filterDateTo">עד תאריך</label>
+        <input type="date" id="filterDateTo">
+      </div>
+      <select id="filterOrderStatus">
+        <option value="all">כל סטטוס ההזמנה</option>
+        <option value="הזמנה">הוזמן</option>
+        <option value="סופק">סופק</option>
+      </select>
+      <div class="chip-group" id="chipHandling">
+        <button type="button" class="chip active" data-value="all">הכל</button>
+        <button type="button" class="chip" data-value="פתוח">פתוח</button>
+        <button type="button" class="chip" data-value="סגור">סגור</button>
+      </div>
+      <select id="filterProcessState">
+        <option value="all">כל מצבי התהליך</option>
+        <option value="quote-no-order">יש הצעת מחיר ללא הזמנה</option>
+        <option value="delivered-unpaid-customer">סופק, אך לא שולם במלואו ע״י הלקוח</option>
+        <option value="delivered-unpaid-architect">סופק, אך העמלה לא שולמה במלואה לאדריכל</option>
+        <option value="closed-with-balance">טיפול סגור עם יתרה לתשלום לאדריכל</option>
+      </select>
+      <select id="filterNotifyStatus">
+        <option value="all">כל סטטוס ההודעות</option>
+        <option value="missing-any">חסרה הודעה כלשהי</option>
+        <option value="missing-quote">חסרה הודעת הצעת מחיר</option>
+        <option value="missing-order">חסרה הודעת הזמנה</option>
+        <option value="missing-benefit">חסרה הודעת הטבה</option>
+        <option value="all-done">כל ההודעות בוצעו</option>
+      </select>
+    </div>
+    <div class="table-scroll">
+      <table class="orders-table" id="ordersTable">
+        <thead>
+          <tr>
+            <th data-key="date">תאריך</th>
+            <th data-key="customerName">לקוח</th>
+            <th data-key="architectName">אדריכל</th>
+            <th data-key="orderNumber">מס׳ הזמנה</th>
+            <th>סטטוס הזמנה</th>
+            <th>הודעות</th>
+            <th data-key="orderAmount">נתוני הזמנה</th>
+            <th data-key="balance">עמלת אדריכל</th>
+            <th>טיפול</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+    <p class="empty-state" id="emptyState" hidden>לא נמצאו הזמנות התואמות את הסינון.</p>
+    <p class="muted" id="syncNote" style="padding:0 2px 14px;"></p>
+  </section>
+
+  <datalist id="architectNames"></datalist>
+
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">הזמנה חדשה</h2>
+        <button type="button" class="icon-btn" id="btnCloseModal" aria-label="סגור">✕</button>
+      </div>
+      <form id="orderForm">
+        <fieldset>
+          <legend>פרטי ההזמנה והתשלומים</legend>
+
+          <div class="form-row cols-3">
+            <div class="field"><label for="f-date">תאריך</label><input type="date" id="f-date" name="date" required></div>
+            <div class="field"><label for="f-orderAmount">סכום הזמנה (₪)</label><input type="number" step="0.01" min="0" id="f-orderAmount" name="orderAmount" required></div>
+            <div class="field">
+              <label for="f-orderStatus">סטטוס הזמנה</label>
+              <select id="f-orderStatus" name="orderStatus">
+                <option value="הזמנה">הוזמן</option>
+                <option value="סופק">סופק</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row cols-4">
+            <div class="field"><label for="f-customerNumber">מספר לקוח</label><input type="text" id="f-customerNumber" name="customerNumber"></div>
+            <div class="field"><label for="f-customerName">שם לקוח</label><input type="text" id="f-customerName" name="customerName" required></div>
+            <div class="field">
+              <label for="f-architectNumber">מספר אדריכל</label>
+              <div class="input-with-action">
+                <input type="text" id="f-architectNumber" name="architectNumber">
+                <button type="button" class="icon-btn" id="btnUnlockArchNumber" title="עריכה ידנית של הקוד" hidden>🔓</button>
+              </div>
+              <span class="hint" id="archNumberHint"></span>
+            </div>
+            <div class="field"><label for="f-architectName">שם אדריכל</label><input type="text" id="f-architectName" name="architectName" list="architectNames" autocomplete="off" required></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field"><label for="f-quoteNumber">מספר הצעת מחיר</label><input type="text" id="f-quoteNumber" name="quoteNumber"></div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-quoteNotified" name="quoteNotified"><span>נמסרה הודעה על הצעת המחיר</span></label>
+            </div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field"><label for="f-orderNumber">מספר הזמנה</label><input type="text" id="f-orderNumber" name="orderNumber"></div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-orderNotified" name="orderNotified"><span>נמסרה הודעה על ההזמנה</span></label>
+            </div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field"><label for="f-paidByCustomer">שולם ע״י הלקוח (₪)</label><input type="number" step="0.01" min="0" id="f-paidByCustomer" name="paidByCustomer"></div>
+            <div class="field"><label for="f-customerCredits">זיכויים והחזרים ללקוח (₪)</label><input type="number" step="0.01" min="0" id="f-customerCredits" name="customerCredits"></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-bonusBudget">עמלת אדריכל (₪)</label>
+              <input type="number" step="0.01" min="0" id="f-bonusBudget" name="bonusBudget">
+              <span class="hint">מחושב אוטומטית כ-10% מסכום ההזמנה — ניתן לעדכן ידנית</span>
+            </div>
+            <div class="field"><label for="f-paidToArchitect">שולם לאדריכל (₪)</label><input type="number" step="0.01" min="0" id="f-paidToArchitect" name="paidToArchitect"></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-marketingBudget">תקציב שיווק לאדריכל (₪)</label>
+              <input type="number" step="0.01" id="f-marketingBudget" name="marketingBudget">
+              <span class="hint">מחושב אוטומטית: 2% מסכום ההזמנה, בניכוי 10% מסכום הזיכויים והחזרי הלקוחות — ניתן לעדכן ידנית</span>
+            </div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-benefitNotified" name="benefitNotified"><span>נמסרה הודעה על ההטבה</span></label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>טיפול</legend>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-handlingStatus">סטטוס טיפול</label>
+              <select id="f-handlingStatus" name="handlingStatus">
+                <option value="פתוח">פתוח</option>
+                <option value="סגור">סגור</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">שמירה</button>
+          <button type="button" class="btn btn-ghost" id="btnCancel">ביטול</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="architectModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="architectModalTitle">
+      <div class="modal-head">
+        <h2 id="architectModalTitle">תקציב שיווק לאדריכל</h2>
+        <button type="button" class="icon-btn" id="btnCloseArchitectModal" aria-label="סגור">✕</button>
+      </div>
+      <div style="padding:18px 22px 22px;">
+        <p class="muted" style="margin:0 0 14px;">תקציב השיווק (2% מכל הזמנה) נצבר במצטבר מכלל ההזמנות של האדריכל. רשמו כאן כל מימוש בפועל של התקציב הזה — הסכום והדרך שבה נוצל.</p>
+        <div class="arch-summary">
+          <div class="arch-summary-tile"><span class="muted">תקציב שיווק שנצבר</span><div class="arch-summary-value" id="archSummaryEarned">—</div></div>
+          <div class="arch-summary-tile"><span class="muted">מומש עד כה</span><div class="arch-summary-value" id="archSummaryUsed">—</div></div>
+          <div class="arch-summary-tile"><span class="muted">יתרה למימוש</span><div class="arch-summary-value" id="archSummaryRemaining">—</div></div>
+        </div>
+
+        <h3 class="realizations-title">מימושים שנרשמו</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>סכום</th><th>אופן מימוש</th><th></th></tr></thead>
+            <tbody id="realizationsBody"></tbody>
+          </table>
+        </div>
+
+        <form id="realizationForm" class="form-row cols-2" style="margin-top:16px;">
+          <div class="field"><label for="f-realizationAmount">סכום מימוש (₪)</label><input type="number" step="0.01" min="0" id="f-realizationAmount" required></div>
+          <div class="field"><label for="f-realizationMethod">אופן מימוש</label><input type="text" id="f-realizationMethod" list="realizationMethods" placeholder="לדוגמה: יום צילום, יום כיף, בונוס" required></div>
+          <div class="field span-2"><button type="submit" class="btn btn-primary">הוספת מימוש</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="realizationMethods"></datalist>
+
+  <div class="modal-overlay" id="confirmOverlay" hidden>
+    <div class="modal" style="max-width:380px;">
+      <div style="padding:26px 24px;text-align:center;">
+        <p id="confirmMessage" style="margin:0 0 20px;font-size:14.5px;"></p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button type="button" class="btn btn-ghost" id="btnConfirmCancel">ביטול</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmOk" style="background:var(--danger);">אישור</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="msGateOverlay" hidden>
+    <div class="modal" style="max-width:460px;">
+      <div style="padding:34px 26px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+        <h2 style="margin:0 0 10px;">התחברות לנתונים המשותפים</h2>
+        <p class="muted" style="margin:0 0 22px;">התחברו עם חשבון Microsoft הארגוני כדי לטעון ולשמור את הנתונים בקובץ ה-Excel המשותף ב-OneDrive.</p>
+        <button type="button" class="btn btn-primary" id="btnMsSignIn" style="width:100%;justify-content:center;margin-bottom:10px;">התחברות עם Microsoft</button>
+        <button type="button" class="btn btn-ghost" id="btnSkipSignIn" style="width:100%;justify-content:center;">המשך במצב תצוגה מקדימה מקומי</button>
+        <p class="hint warn" id="msGateError" style="margin-top:14px;"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const BONUS_RATE = 0.10;
+  const MARKETING_RATE = 0.02;
+  const CREDIT_CLAWBACK_RATE = 0.10;
+
+  const MSAL_CLIENT_ID = '05f020fc-091a-4ba3-9fc8-4c5a6a97a7b9';
+  const MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';
+  const GRAPH_SCOPES = ['Files.ReadWrite', 'User.Read'];
+  const EXCEL_FILE_NAME = 'בסיס נתונים - מעקב עמלות אדריכלים.xlsx';
+  const GRAPH_FILE_ID_KEY = 'architect-graph-file-id';
+  const ORDERS_TABLE = 'Orders';
+  const REALIZATIONS_TABLE = 'Realizations';
+  const ORDERS_COLUMNS = ['id','date','customerNumber','customerName','architectName','architectNumber','quoteNumber','quoteNotified','orderNumber','orderAmount','orderNotified','orderStatus','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect','benefitNotified','handlingStatus'];
+  const REALIZATION_COLUMNS = ['id','key','name','number','date','amount','method'];
+  const BOOL_ORDER_FIELDS = new Set(['quoteNotified','orderNotified','benefitNotified']);
+  const NUM_ORDER_FIELDS = new Set(['orderAmount','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect']);
+
+  let msalInstance = null;
+  let graphAvailable = false;
+  let graphAccessToken = null;
+  let graphFileId = null;
+  let graphPollTimer = null;
+
+  let db = null;
+  let dbAvailable = false;
+  let orders = [];
+  let architectMeta = {};
+  let editingId = null;
+  let bonusManuallyEdited = false;
+  let marketingManuallyEdited = false;
+  let expandedIds = new Set();
+  let currentArchModalKey = null;
+  let currentArchModalName = '';
+  let currentArchModalNumber = '';
+
+  let filterText = '';
+  let filterHandling = 'all';
+  let filterOrderStatus = 'all';
+  let filterArchitect = 'all';
+  let filterProcessState = 'all';
+  let filterNotifyStatus = 'all';
+  let filterDateFrom = '';
+  let filterDateTo = '';
+  let architectSearchText = '';
+  let sortKey = 'date';
+  let sortDir = 'desc';
+
+  function num(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+  function esc(s){
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  const moneyFmt = new Intl.NumberFormat('he-IL', {style:'currency', currency:'ILS', maximumFractionDigits:0});
+  function fmtMoney(v){ return moneyFmt.format(num(v)); }
+  function fmtDate(iso){
+    if(!iso) return '—';
+    const parts = String(iso).split('-');
+    if(parts.length!==3) return esc(iso);
+    const [y,m,d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+  function archKey(name, number){ return (name||'—') + '||' + (number||''); }
+
+  let architectNumberUnlocked = true;
+
+  function getArchitectDirectory(){
+    const byName = new Map();
+    const byNumber = new Map();
+    orders.forEach(o=>{
+      const name = (o.architectName||'').trim();
+      const number = (o.architectNumber||'').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (number && (!byName.has(key) || !byName.get(key).number)) byName.set(key, {name, number});
+      else if (!byName.has(key)) byName.set(key, {name, number});
+      if (number && !byNumber.has(number)) byNumber.set(number, name);
+    });
+    return { byName, byNumber };
+  }
+
+  function applyArchitectLock(matchedNumber){
+    const input = document.getElementById('f-architectNumber');
+    const hint = document.getElementById('archNumberHint');
+    const btn = document.getElementById('btnUnlockArchNumber');
+    if (matchedNumber){
+      input.value = matchedNumber;
+      input.readOnly = true;
+      input.classList.add('locked');
+      hint.textContent = 'קוד אדריכל קיים – ננעל אוטומטית לפי השם. לעריכה ידנית לחץ על כפתור הנעילה.';
+      hint.classList.remove('warn');
+      btn.hidden = false;
+      architectNumberUnlocked = false;
+    } else {
+      input.readOnly = false;
+      input.classList.remove('locked');
+      btn.hidden = true;
+      architectNumberUnlocked = true;
+      hint.textContent = '';
+      hint.classList.remove('warn');
+    }
+  }
+
+  function handleArchitectNameInput(){
+    const nameInput = document.getElementById('f-architectName');
+    const name = nameInput.value.trim().toLowerCase();
+    if (!name){ applyArchitectLock(null); return; }
+    const dir = getArchitectDirectory();
+    const match = dir.byName.get(name);
+    if (match && match.number) applyArchitectLock(match.number);
+    else applyArchitectLock(null);
+  }
+
+  function handleArchitectNumberInput(){
+    if (!architectNumberUnlocked) return;
+    const hint = document.getElementById('archNumberHint');
+    const numberInput = document.getElementById('f-architectNumber');
+    const number = numberInput.value.trim();
+    const currentName = document.getElementById('f-architectName').value.trim();
+    if (!number){ hint.textContent=''; hint.classList.remove('warn'); return; }
+    const dir = getArchitectDirectory();
+    const existingName = dir.byNumber.get(number);
+    if (existingName && existingName.toLowerCase() !== currentName.toLowerCase()){
+      hint.textContent = `שים לב: קוד זה כבר שייך לאדריכל "${existingName}" – ייתכן שמדובר באדריכל כפול.`;
+      hint.classList.add('warn');
+    } else {
+      hint.textContent = '';
+      hint.classList.remove('warn');
+    }
+  }
+  function archDocId(key){
+    let h = 0;
+    for (let i=0;i<key.length;i++){ h = (h*31 + key.charCodeAt(i)) >>> 0; }
+    return 'a' + h.toString(36);
+  }
+
+  // ---------- Excel row <-> object mapping ----------
+  function orderToRow(o){
+    return ORDERS_COLUMNS.map(k=>{
+      if (BOOL_ORDER_FIELDS.has(k)) return !!o[k];
+      if (NUM_ORDER_FIELDS.has(k)) return num(o[k]);
+      return o[k] != null ? String(o[k]) : '';
+    });
+  }
+  function rowToOrder(vals){
+    const o = {};
+    ORDERS_COLUMNS.forEach((k,i)=>{
+      const v = vals[i];
+      if (BOOL_ORDER_FIELDS.has(k)) o[k] = (v===true || v==='TRUE' || v===1 || v==='1');
+      else if (NUM_ORDER_FIELDS.has(k)) o[k] = num(v);
+      else o[k] = v != null ? String(v) : '';
+    });
+    return o;
+  }
+  function realizationToRow(r){
+    return REALIZATION_COLUMNS.map(k=> k==='amount' ? num(r[k]) : (r[k] != null ? String(r[k]) : ''));
+  }
+  function rowToRealization(vals){
+    const r = {};
+    REALIZATION_COLUMNS.forEach((k,i)=>{
+      const v = vals[i];
+      r[k] = k==='amount' ? num(v) : (v != null ? String(v) : '');
+    });
+    return r;
+  }
+
+  // ---------- Microsoft sign-in (MSAL) ----------
+  async function initMsal(){
+    if (!window.msal) return false;
+    try{
+      msalInstance = new msal.PublicClientApplication({
+        auth: {
+          clientId: MSAL_CLIENT_ID,
+          authority: 'https://login.microsoftonline.com/' + MSAL_TENANT_ID,
+          redirectUri: window.location.origin + window.location.pathname,
+        },
+        cache: { cacheLocation: 'localStorage' }
+      });
+      await msalInstance.initialize();
+      try{ await msalInstance.handleRedirectPromise(); } catch(e){ console.error('redirect handling error', e); }
+      return true;
+    } catch(e){ console.error('msal init error', e); return false; }
+  }
+
+  async function acquireGraphTokenSilent(){
+    const accounts = msalInstance.getAllAccounts();
+    if (!accounts.length) return null;
+    try{
+      return await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: accounts[0] });
+    } catch(e){ return null; }
+  }
+
+  async function signInWithMicrosoft(){
+    const errEl = document.getElementById('msGateError');
+    errEl.textContent = '';
+    try{
+      const result = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
+      graphAccessToken = result.accessToken;
+      await activateGraphMode(result.account);
+    } catch(e){
+      console.error('sign-in failed', e);
+      errEl.textContent = 'ההתחברות נכשלה. ודאו שהאפליקציה קיבלה הרשאות ואישור מנהל, ונסו שוב.';
+    }
+  }
+
+  async function signOutMicrosoft(){
+    try{
+      const accounts = msalInstance ? msalInstance.getAllAccounts() : [];
+      if (accounts.length) await msalInstance.logoutPopup({ account: accounts[0] });
+    } catch(e){ console.error('sign-out error', e); }
+    if (graphPollTimer) clearInterval(graphPollTimer);
+    try{ localStorage.removeItem(GRAPH_FILE_ID_KEY); } catch(e){ /* ignore */ }
+    location.reload();
+  }
+
+  // ---------- Microsoft Graph (Excel workbook) I/O ----------
+  async function graphFetch(path, options){
+    options = options || {};
+    const headers = Object.assign({ 'Authorization': 'Bearer ' + graphAccessToken, 'Content-Type': 'application/json' }, options.headers || {});
+    const res = await fetch('https://graph.microsoft.com/v1.0' + path, Object.assign({}, options, { headers }));
+    if (!res.ok){
+      const text = await res.text().catch(()=>'');
+      throw new Error('Graph ' + res.status + ': ' + text);
+    }
+    // Some endpoints (e.g. deleting a table row) return 200/204 with an empty body,
+    // not necessarily 204 — parsing that as JSON would throw, so read as text first.
+    const text = await res.text().catch(()=>'');
+    if (!text) return null;
+    try{ return JSON.parse(text); } catch(e){ return null; }
+  }
+
+  async function findWorkbookFile(){
+    const cached = localStorage.getItem(GRAPH_FILE_ID_KEY);
+    if (cached) return cached;
+    const q = encodeURIComponent(EXCEL_FILE_NAME.replace(/\.xlsx$/i, ''));
+    const data = await graphFetch("/me/drive/root/search(q='" + q + "')");
+    const list = data.value || [];
+    const match = list.find(f => f.name === EXCEL_FILE_NAME) || list.find(f => /\.xlsx$/i.test(f.name || ''));
+    if (!match) throw new Error('workbook-not-found');
+    localStorage.setItem(GRAPH_FILE_ID_KEY, match.id);
+    return match.id;
+  }
+
+  async function graphReadTable(tableName){
+    const data = await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows');
+    return (data.value || []).map(r => r.values[0]);
+  }
+  async function graphAddRow(tableName, values){
+    await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows', {
+      method: 'POST', body: JSON.stringify({ values: [values] })
+    });
+  }
+  async function graphFindRowIndex(tableName, id){
+    const rows = await graphReadTable(tableName);
+    for (let i=0;i<rows.length;i++){ if (String(rows[i][0]) === String(id)) return i; }
+    return -1;
+  }
+  async function graphUpdateRowAt(tableName, index, values){
+    await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows/' + index, {
+      method: 'PATCH', body: JSON.stringify({ values: [values] })
+    });
+  }
+  async function graphDeleteRowAt(tableName, index){
+    const base = '/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows/';
+    try{
+      await graphFetch(base + index, { method: 'DELETE' });
+    } catch(e1){
+      // Some tenants reject the plain DELETE-by-index verb; fall back to the
+      // POST-based delete action used elsewhere in the Excel Graph API.
+      try{
+        await graphFetch(base + 'itemAt(index=' + index + ')/delete', { method: 'POST' });
+      } catch(e2){
+        throw new Error('DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + ']');
+      }
+    }
+  }
+
+  async function loadFromGraph(){
+    const orderRows = await graphReadTable(ORDERS_TABLE);
+    orders = orderRows.filter(r => r[0] && String(r[0]).trim()).map(rowToOrder);
+    const realRows = await graphReadTable(REALIZATIONS_TABLE);
+    const realizations = realRows.filter(r => r[0] && String(r[0]).trim()).map(rowToRealization);
+    const map = {};
+    realizations.forEach(r=>{
+      const key = r.key || archKey(r.name, r.number);
+      const docId = archDocId(key);
+      if (!map[docId]) map[docId] = { name:r.name, number:r.number, realizations: [] };
+      map[docId].realizations.push({ id:r.id, amount:r.amount, method:r.method, createdAt: r.date ? (Date.parse(r.date)||Date.now()) : Date.now() });
+    });
+    architectMeta = map;
+    render();
+  }
+
+  async function activateGraphMode(account){
+    document.getElementById('msGateOverlay').hidden = true;
+    document.getElementById('msAccountBox').hidden = false;
+    document.getElementById('msAccountLabel').textContent = (account && (account.username || account.name)) || '';
+    try{
+      graphFileId = await findWorkbookFile();
+      await loadFromGraph();
+      graphAvailable = true;
+      document.getElementById('syncNote').textContent = 'הנתונים נשמרים בקובץ ה-Excel שלכם ב-OneDrive, ומשותפים לכל מי שמחובר.';
+      if (graphPollTimer) clearInterval(graphPollTimer);
+      graphPollTimer = setInterval(()=>{ loadFromGraph().catch(e=>console.error('poll error', e)); }, 25000);
+    } catch(e){
+      console.error('graph activation error', e);
+      graphAvailable = false;
+      document.getElementById('msAccountBox').hidden = true;
+      showBanner('לא הצלחנו לאתר את קובץ "' + EXCEL_FILE_NAME + '" ב-OneDrive של החשבון המחובר. ודאו שהקובץ קיים ונסו לרענן, או המשיכו במצב תצוגה מקדימה מקומי.');
+      initLocalFallback();
+    }
+  }
+
+  function exampleRows(){
+    return [
+      {date:'2026-08-10', customerNumber:'1042', customerName:'משפחת לוי', architectName:'דנה כהן אדריכלים', architectNumber:'A-118', quoteNumber:'Q-3391', quoteNotified:true, orderNumber:'O-8821', orderAmount:42500, orderNotified:true, paidByCustomer:42500, orderStatus:'סופק', benefitNotified:true, paidToArchitect:4250, bonusBudget:4250, marketingBudget:850, handlingStatus:'סגור', customerCredits:0, isExample:true, createdAt:Date.now()-40*86400000},
+      {date:'2026-08-22', customerNumber:'1077', customerName:'בראל ושות׳', architectName:'עומר שגיא סטודיו לעיצוב', architectNumber:'A-204', quoteNumber:'Q-3405', quoteNotified:true, orderNumber:'O-8846', orderAmount:68900, orderNotified:false, paidByCustomer:40000, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:6890, marketingBudget:1378, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-28*86400000},
+      {date:'2026-09-01', customerNumber:'1090', customerName:'וילת הכרמל', architectName:'דנה כהן אדריכלים', architectNumber:'A-118', quoteNumber:'Q-3420', quoteNotified:true, orderNumber:'O-8860', orderAmount:125000, orderNotified:true, paidByCustomer:125000, orderStatus:'סופק', benefitNotified:false, paidToArchitect:6000, bonusBudget:12500, marketingBudget:2500, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-5*86400000},
+      {date:'2026-09-04', customerNumber:'1103', customerName:'משרד עו״ד רימון', architectName:'נטלי אבידור אדריכלות פנים', architectNumber:'A-256', quoteNumber:'Q-3431', quoteNotified:false, orderNumber:'O-8875', orderAmount:15300, orderNotified:false, paidByCustomer:0, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:1530, marketingBudget:306, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-2*86400000},
+      {date:'2026-09-06', customerNumber:'1110', customerName:'דירת פנטהאוז רוטשילד', architectName:'עומר שגיא סטודיו לעיצוב', architectNumber:'A-204', quoteNumber:'Q-3448', quoteNotified:true, orderNumber:'', orderAmount:0, orderNotified:false, paidByCustomer:0, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:0, marketingBudget:0, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-1*86400000},
+    ];
+  }
+
+  function exampleArchitectMeta(){
+    const key = archKey('דנה כהן אדריכלים','A-118');
+    const docId = archDocId(key);
+    return { [docId]: {
+      name:'דנה כהן אדריכלים', number:'A-118',
+      realizations:[
+        {id:'r1', amount:1000, method:'יום צילום', createdAt:Date.now()-10*86400000},
+        {id:'r2', amount:1000, method:'יום כיף', createdAt:Date.now()-3*86400000},
+      ]
+    }};
+  }
+
+  const LOCAL_KEY = 'architect-orders-preview-v4';
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e){ /* private mode / blocked storage: fall through */ }
+    return null;
+  }
+  function saveLocal(){
+    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(orders)); } catch(e){ /* ignore */ }
+  }
+
+  const ARCH_META_KEY = 'architect-meta-preview-v1';
+  function loadLocalMeta(){
+    try{
+      const raw = localStorage.getItem(ARCH_META_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e){ /* ignore */ }
+    return null;
+  }
+  function saveLocalMeta(){
+    try{ localStorage.setItem(ARCH_META_KEY, JSON.stringify(architectMeta)); } catch(e){ /* ignore */ }
+  }
+
+  function showBanner(msg, kind){
+    const b = document.getElementById('banner');
+    b.textContent = msg;
+    b.className = 'banner' + (kind==='info' ? ' info' : '');
+    b.hidden = false;
+  }
+
+  // Custom confirm dialog: some hosting contexts (e.g. a sandboxed preview iframe)
+  // silently block the native window.confirm(), which would make delete buttons
+  // appear to do nothing. This in-page dialog works everywhere instead.
+  let confirmResolver = null;
+  function showConfirm(message){
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmOverlay').hidden = false;
+    return new Promise(resolve => { confirmResolver = resolve; });
+  }
+  function resolveConfirm(result){
+    document.getElementById('confirmOverlay').hidden = true;
+    if (confirmResolver){ confirmResolver(result); confirmResolver = null; }
+  }
+
+  function initLocalFallback(){
+    dbAvailable = false;
+    graphAvailable = false;
+    document.getElementById('syncNote').textContent = '';
+    showBanner('מצב תצוגה מקדימה לבדיקה: הנתונים נשמרים רק בדפדפן הזה ואינם משותפים לאף אחד אחר.', 'info');
+    const stored = loadLocal();
+    if (stored && stored.length){
+      orders = stored;
+    } else {
+      orders = exampleRows().map((r,i)=>({id:'local-'+i, ...r}));
+      saveLocal();
+    }
+    const storedMeta = loadLocalMeta();
+    if (storedMeta && Object.keys(storedMeta).length){
+      architectMeta = storedMeta;
+    } else {
+      architectMeta = exampleArchitectMeta();
+      saveLocalMeta();
+    }
+    render();
+  }
+
+  async function init(){
+    try{
+      db = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('db') : null;
+    } catch(e){ db = null; }
+
+    if (db){
+      dbAvailable = true;
+      document.getElementById('syncNote').textContent = 'הנתונים נשמרים אוטומטית ומשותפים לכל מי שפותח את הכלי בארגון.';
+      subscribeOrders();
+      maybeSeed();
+      subscribeArchitectMeta();
+      maybeSeedArchitectMeta();
+      return;
+    }
+
+    dbAvailable = false;
+    const msalReady = await initMsal();
+    if (msalReady){
+      const silent = await acquireGraphTokenSilent();
+      if (silent){
+        graphAccessToken = silent.accessToken;
+        await activateGraphMode(silent.account);
+        return;
+      }
+      document.getElementById('msGateOverlay').hidden = false;
+      return;
+    }
+    initLocalFallback();
+  }
+
+  function subscribeOrders(){
+    db.collection('orders').onSnapshot(
+      snap => {
+        orders = snap.docs.map(d => ({id:d.id, ...d.data()}));
+        render();
+      },
+      err => {
+        console.error('orders subscription error', err);
+        showBanner('אירעה שגיאה בטעינת הנתונים. נסו לרענן את הדף.');
+      }
+    );
+  }
+
+  async function maybeSeed(){
+    try{
+      const seedDoc = await db.doc('meta/seeded').get();
+      if (seedDoc.exists) return;
+      const existing = await db.collection('orders').limit(1).get();
+      if (existing.empty){
+        for (const row of exampleRows()){
+          await db.collection('orders').add(row);
+        }
+      }
+      await db.doc('meta/seeded').set({done:true, at:Date.now()});
+    } catch(e){ console.error('seed error', e); }
+  }
+
+  function subscribeArchitectMeta(){
+    db.collection('architectMeta').onSnapshot(
+      snap => {
+        const map = {};
+        snap.docs.forEach(d=>{ map[d.id] = d.data(); });
+        architectMeta = map;
+        render();
+      },
+      err => { console.error('architect meta subscription error', err); }
+    );
+  }
+
+  async function maybeSeedArchitectMeta(){
+    try{
+      const seedDoc = await db.doc('meta/architectMetaSeeded').get();
+      if (seedDoc.exists) return;
+      const existing = await db.collection('architectMeta').limit(1).get();
+      if (existing.empty){
+        const seed = exampleArchitectMeta();
+        for (const docId of Object.keys(seed)){
+          await db.collection('architectMeta').doc(docId).set(seed[docId]);
+        }
+      }
+      await db.doc('meta/architectMetaSeeded').set({done:true, at:Date.now()});
+    } catch(e){ console.error('seed architect meta error', e); }
+  }
+
+  async function addRealization(key, name, number, amount, method){
+    const docId = archDocId(key);
+    try{
+      if (graphAvailable){
+        const entry = { id:'r'+Date.now()+Math.floor(Math.random()*1000), key, name, number, date:new Date().toISOString().slice(0,10), amount:num(amount), method:String(method||'').trim() };
+        await graphAddRow(REALIZATIONS_TABLE, realizationToRow(entry));
+        await loadFromGraph();
+        return;
+      }
+      const existing = architectMeta[docId] || {name, number, realizations:[]};
+      const entry = {id:'r'+Date.now()+Math.floor(Math.random()*1000), amount:num(amount), method:String(method||'').trim(), createdAt:Date.now()};
+      const data = {name, number, realizations:[...(existing.realizations||[]), entry]};
+      architectMeta = {...architectMeta, [docId]: data};
+      render();
+      if (dbAvailable){
+        await db.collection('architectMeta').doc(docId).set(data);
+      } else {
+        saveLocalMeta();
+      }
+    } catch(e){
+      console.error('add realization error', e);
+      showBanner('שמירת המימוש נכשלה. נסו שוב.');
+    }
+  }
+
+  async function deleteRealization(key, entryId){
+    try{
+      if (graphAvailable){
+        const idx = await graphFindRowIndex(REALIZATIONS_TABLE, entryId);
+        if (idx>-1) await graphDeleteRowAt(REALIZATIONS_TABLE, idx);
+        await loadFromGraph();
+        return;
+      }
+      const docId = archDocId(key);
+      const existing = architectMeta[docId];
+      if (!existing) return;
+      const data = {...existing, realizations:(existing.realizations||[]).filter(r=>r.id!==entryId)};
+      architectMeta = {...architectMeta, [docId]: data};
+      render();
+      if (dbAvailable){
+        await db.collection('architectMeta').doc(docId).set(data);
+      } else {
+        saveLocalMeta();
+      }
+    } catch(e){
+      console.error('delete realization error', e);
+      showBanner('מחיקת המימוש נכשלה: ' + (e && e.message ? e.message : 'שגיאה לא ידועה'));
+    }
+  }
+
+  async function saveOrder(data){
+    try{
+      if (graphAvailable){
+        if (editingId){
+          const merged = {...(orders.find(o=>o.id===editingId)||{}), ...data, id: editingId};
+          const idx = await graphFindRowIndex(ORDERS_TABLE, editingId);
+          if (idx>-1) await graphUpdateRowAt(ORDERS_TABLE, idx, orderToRow(merged));
+        } else {
+          const newOrder = {...data, id:'o'+Date.now()+Math.floor(Math.random()*1000), createdAt:Date.now()};
+          await graphAddRow(ORDERS_TABLE, orderToRow(newOrder));
+        }
+        await loadFromGraph();
+      } else if (dbAvailable){
+        if (editingId){
+          await db.collection('orders').doc(editingId).update(data);
+        } else {
+          data.createdAt = Date.now();
+          await db.collection('orders').add(data);
+        }
+      } else {
+        if (editingId){
+          const idx = orders.findIndex(o=>o.id===editingId);
+          if (idx>-1) orders[idx] = {...orders[idx], ...data};
+        } else {
+          data.createdAt = Date.now();
+          orders.unshift({id:'local-'+Date.now(), ...data});
+        }
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('save error', e);
+      showBanner('שמירת ההזמנה נכשלה. נסו שוב.');
+    }
+  }
+
+  async function deleteOrder(id){
+    try{
+      if (graphAvailable){
+        const idx = await graphFindRowIndex(ORDERS_TABLE, id);
+        if (idx>-1) await graphDeleteRowAt(ORDERS_TABLE, idx);
+        await loadFromGraph();
+      } else if (dbAvailable){
+        await db.collection('orders').doc(id).delete();
+      } else {
+        orders = orders.filter(o=>o.id!==id);
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('delete error', e);
+      showBanner('מחיקת ההזמנה נכשלה: ' + (e && e.message ? e.message : 'שגיאה לא ידועה'));
+    }
+  }
+
+  async function toggleNotified(id, field){
+    const o = orders.find(x=>x.id===id);
+    if (!o) return;
+    const patch = { [field]: !o[field] };
+    try{
+      if (graphAvailable){
+        const merged = {...o, ...patch};
+        const idx = await graphFindRowIndex(ORDERS_TABLE, id);
+        if (idx>-1) await graphUpdateRowAt(ORDERS_TABLE, idx, orderToRow(merged));
+        await loadFromGraph();
+      } else if (dbAvailable){
+        await db.collection('orders').doc(id).update(patch);
+      } else {
+        const idx = orders.findIndex(x=>x.id===id);
+        if (idx>-1) orders[idx] = {...orders[idx], ...patch};
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('toggle error', e);
+      showBanner('עדכון סטטוס ההודעה נכשל. נסו שוב.');
+    }
+  }
+
+  async function clearExamples(){
+    const examples = orders.filter(o=>o.isExample);
+    for (const o of examples){ await deleteOrder(o.id); }
+  }
+
+  function getFiltered(){
+    return orders.filter(o=>{
+      if (filterHandling!=='all' && o.handlingStatus!==filterHandling) return false;
+      if (filterOrderStatus!=='all' && o.orderStatus!==filterOrderStatus) return false;
+      if (filterArchitect!=='all' && o.architectName!==filterArchitect) return false;
+      if (filterNotifyStatus!=='all'){
+        const allDone = !!(o.quoteNotified && o.orderNotified && o.benefitNotified);
+        if (filterNotifyStatus==='missing-any' && allDone) return false;
+        if (filterNotifyStatus==='all-done' && !allDone) return false;
+        if (filterNotifyStatus==='missing-quote' && o.quoteNotified) return false;
+        if (filterNotifyStatus==='missing-order' && o.orderNotified) return false;
+        if (filterNotifyStatus==='missing-benefit' && o.benefitNotified) return false;
+      }
+      if (filterProcessState!=='all'){
+        const hasOrder = !!String(o.orderNumber||'').trim();
+        const hasQuote = !!String(o.quoteNumber||'').trim();
+        const archBalance = num(o.bonusBudget) - num(o.paidToArchitect);
+        if (filterProcessState==='quote-no-order' && !(hasQuote && !hasOrder)) return false;
+        if (filterProcessState==='delivered-unpaid-customer' && !(o.orderStatus==='סופק' && num(o.paidByCustomer) < num(o.orderAmount))) return false;
+        if (filterProcessState==='delivered-unpaid-architect' && !(o.orderStatus==='סופק' && archBalance>0)) return false;
+        if (filterProcessState==='closed-with-balance' && !(o.handlingStatus==='סגור' && archBalance>0)) return false;
+      }
+      if (filterDateFrom && String(o.date||'') < filterDateFrom) return false;
+      if (filterDateTo && String(o.date||'') > filterDateTo) return false;
+      if (filterText){
+        const t = filterText.trim().toLowerCase();
+        const hay = [o.customerName,o.customerNumber,o.architectName,o.architectNumber,o.orderNumber,o.quoteNumber]
+          .map(v=>String(v||'').toLowerCase()).join(' ');
+        if (!hay.includes(t)) return false;
+      }
+      return true;
+    });
+  }
+
+  function getSorted(list){
+    return [...list].sort((a,b)=>{
+      let av, bv;
+      if (sortKey==='balance'){
+        av = num(a.bonusBudget) - num(a.paidToArchitect);
+        bv = num(b.bonusBudget) - num(b.paidToArchitect);
+      } else {
+        av = a[sortKey]; bv = b[sortKey];
+        const numeric = ['orderAmount','paidByCustomer','bonusBudget','paidToArchitect'].includes(sortKey);
+        if (numeric){ av = num(av); bv = num(bv); }
+        else { av = String(av||''); bv = String(bv||''); }
+      }
+      if (av<bv) return sortDir==='asc' ? -1 : 1;
+      if (av>bv) return sortDir==='asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function computeStats(list){
+    const archGroups = computeArchitects(list);
+    return {
+      openCount: list.filter(o=>o.handlingStatus==='פתוח').length,
+      totalOrders: list.reduce((s,o)=>s+num(o.orderAmount),0),
+      custBalance: list.reduce((s,o)=>s+Math.max(num(o.orderAmount)-num(o.paidByCustomer),0),0),
+      archPending: list.reduce((s,o)=>s+Math.max(num(o.bonusBudget)-num(o.paidToArchitect),0),0),
+      archPaid: list.reduce((s,o)=>s+num(o.paidToArchitect),0),
+      marketingTotal: list.reduce((s,o)=>s+num(o.marketingBudget),0),
+      marketingUsedTotal: archGroups.reduce((s,g)=>s+g.realized,0),
+      marketingRemaining: archGroups.reduce((s,g)=>s+g.remaining,0),
+      notifyPending: list.filter(o=>!(o.quoteNotified && o.orderNotified && o.benefitNotified)).length,
+    };
+  }
+
+  function computeArchitects(list){
+    const map = new Map();
+    for (const o of list){
+      const key = archKey(o.architectName, o.architectNumber);
+      if (!map.has(key)) map.set(key, {name:o.architectName||'—', number:o.architectNumber||'', count:0, sales:0, bonus:0, paid:0, marketing:0});
+      const g = map.get(key);
+      g.count++; g.sales += num(o.orderAmount); g.bonus += num(o.bonusBudget); g.paid += num(o.paidToArchitect); g.marketing += num(o.marketingBudget);
+    }
+    return [...map.values()].map(g=>{
+      const key = archKey(g.name, g.number);
+      const docId = archDocId(key);
+      const meta = architectMeta[docId];
+      const realizations = (meta && meta.realizations) || [];
+      const realized = realizations.reduce((s,r)=>s+num(r.amount),0);
+      return {...g, balance:g.bonus-g.paid, key, docId, realizations, realized, remaining: g.marketing-realized};
+    }).sort((a,b)=>b.balance-a.balance);
+  }
+
+  function statusPill(status){
+    const map = {
+      'הזמנה': ['st-ordered','הוזמן'],
+      'סופק': ['st-delivered','סופק'],
+      'פתוח': ['st-open','פתוח'],
+      'סגור': ['st-closed','סגור'],
+    };
+    const [cls,label] = map[status] || ['st-delivered', status||'—'];
+    return `<span class="pill ${cls}">${esc(label)}</span>`;
+  }
+
+  function renderStats(){
+    const s = computeStats(orders);
+    const tiles = [
+      {label:'הזמנות פתוחות לטיפול', value:String(s.openCount), cls:s.openCount>0?'warn':''},
+      {label:'סה״כ ערך הזמנות', value:fmtMoney(s.totalOrders), cls:''},
+      {label:'יתרת גבייה מלקוחות', value:fmtMoney(s.custBalance), cls:s.custBalance>0?'warn':'good'},
+      {label:'עמלות ממתינות לתשלום', value:fmtMoney(s.archPending), cls:s.archPending>0?'warn':'good'},
+      {label:'עמלות ששולמו לאדריכלים', value:fmtMoney(s.archPaid), cls:'good'},
+      {label:'תקציב שיווק לאדריכלים (סה״כ)', value:fmtMoney(s.marketingTotal), cls:''},
+      {label:'תקציב שיווק שמומש (סה״כ)', value:fmtMoney(s.marketingUsedTotal), cls:'good'},
+      {label:'יתרה למימוש', value:fmtMoney(s.marketingRemaining), cls:s.marketingRemaining>0?'warn':'good'},
+      {label:'הזמנות עם הודעות חסרות', value:String(s.notifyPending), cls:s.notifyPending>0?'warn':'good'},
+    ];
+    document.getElementById('stats').innerHTML = tiles.map(t=>
+      `<div class="stat-tile ${t.cls}"><div class="label">${esc(t.label)}</div><div class="value">${t.value}</div></div>`
+    ).join('');
+  }
+
+  function renderArchitects(){
+    let groups = computeArchitects(orders);
+    const totalCount = groups.length;
+    if (architectSearchText.trim()){
+      const t = architectSearchText.trim().toLowerCase();
+      groups = groups.filter(g=>
+        String(g.name||'').toLowerCase().includes(t) ||
+        String(g.number||'').toLowerCase().includes(t) ||
+        g.realizations.some(r=>String(r.method||'').toLowerCase().includes(t))
+      );
+    }
+    document.getElementById('architectCount').textContent = totalCount
+      ? (groups.length===totalCount ? `${totalCount} אדריכלים פעילים` : `${groups.length} מתוך ${totalCount} אדריכלים`)
+      : '';
+    document.getElementById('architectBody').innerHTML = groups.length ? groups.map(g=>`
+      <tr>
+        <td>${esc(g.name)}${g.number?`<div class="sub">${esc(g.number)}</div>`:''}</td>
+        <td class="num">${g.count}</td>
+        <td class="num">${fmtMoney(g.sales)}</td>
+        <td class="num">${fmtMoney(g.bonus)}</td>
+        <td class="num">${fmtMoney(g.paid)}</td>
+        <td class="num ${g.balance>0?'due':''}">${fmtMoney(g.balance)}</td>
+        <td class="num">${fmtMoney(g.marketing)}</td>
+        <td class="num">${fmtMoney(g.realized)}</td>
+        <td class="num ${g.remaining>0?'due':''}">${fmtMoney(g.remaining)}</td>
+        <td class="actions"><button type="button" class="icon-btn" data-arch-edit="${esc(g.docId)}" title="ניהול תקציב שיווק">✎</button></td>
+      </tr>`).join('') : `<tr><td colspan="10" class="muted" style="text-align:center;padding:18px;">${totalCount ? 'לא נמצא אדריכל התואם את החיפוש.' : 'אין עדיין נתונים להצגה.'}</td></tr>`;
+  }
+
+  function updateArchitectOptions(){
+    const names = [...new Set(orders.map(o=>o.architectName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    const sel = document.getElementById('filterArchitect');
+    const current = filterArchitect;
+    sel.innerHTML = '<option value="all">כל האדריכלים</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    if (names.includes(current)) sel.value = current; else { sel.value='all'; filterArchitect='all'; }
+
+    document.getElementById('architectNames').innerHTML = names.map(n=>`<option value="${esc(n)}">`).join('');
+
+    const methods = [...new Set(Object.values(architectMeta).flatMap(m=>(m.realizations||[]).map(r=>r.method)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    document.getElementById('realizationMethods').innerHTML = methods.map(m=>`<option value="${esc(m)}">`).join('');
+  }
+
+  function notifyCell(o){
+    const items = [
+      {key:'quoteNotified', label:'הצעה', abbr:'הצ'},
+      {key:'orderNotified', label:'הזמנה', abbr:'הז'},
+      {key:'benefitNotified', label:'הטבה', abbr:'הט'},
+    ];
+    return `<div class="notify-cell">${items.map(it=>{
+      const done = !!o[it.key];
+      return `<button type="button" class="ntoggle ${done?'done':'pending'}" data-field="${it.key}" title="${it.label}: ${done?'בוצע — לחצו לסימון כלא בוצע':'לא בוצע — לחצו לסימון כבוצע'}" aria-label="הודעת ${it.label}: ${done?'בוצע':'לא בוצע'}">${esc(it.abbr)}</button>`;
+    }).join('')}</div>`;
+  }
+
+  function moneyCustomerCell(o){
+    const amt = num(o.orderAmount), paid = num(o.paidByCustomer);
+    const short = paid < amt;
+    return `<div class="money-cell">
+      <div>${fmtMoney(amt)}</div>
+      <div class="sub ${short?'due':''}">שולם: ${fmtMoney(paid)}</div>
+    </div>`;
+  }
+
+  function moneyArchitectCell(o){
+    const bonus = num(o.bonusBudget), paid = num(o.paidToArchitect);
+    const balance = bonus - paid;
+    return `<div class="money-cell">
+      <div>${fmtMoney(bonus)}</div>
+      <div class="sub">שולם: ${fmtMoney(paid)}</div>
+      <div class="sub ${balance>0?'due':''}">יתרה: ${fmtMoney(balance)}</div>
+    </div>`;
+  }
+
+  function orderRowHtml(o){
+    const isOpen = expandedIds.has(o.id);
+    const mainRow = `<tr data-id="${esc(o.id)}">
+      <td>${fmtDate(o.date)}</td>
+      <td>${esc(o.customerName)||'—'}${o.isExample?'<span class="tag-example">לדוגמה</span>':''}${o.customerNumber?`<div class="sub">${esc(o.customerNumber)}</div>`:''}</td>
+      <td>${esc(o.architectName)||'—'}${o.architectNumber?`<div class="sub">${esc(o.architectNumber)}</div>`:''}</td>
+      <td>${esc(o.orderNumber)||'—'}</td>
+      <td>${statusPill(o.orderStatus)}</td>
+      <td>${notifyCell(o)}</td>
+      <td>${moneyCustomerCell(o)}</td>
+      <td>${moneyArchitectCell(o)}</td>
+      <td>${statusPill(o.handlingStatus)}</td>
+      <td class="actions">
+        <button type="button" class="icon-btn" data-action="toggle" title="פרטים">${isOpen?'˄':'˅'}</button>
+        <button type="button" class="icon-btn" data-action="edit" title="עריכה">✎</button>
+        <button type="button" class="icon-btn danger" data-action="delete" title="מחיקה">🗑</button>
+      </td>
+    </tr>`;
+    if (!isOpen) return mainRow;
+    const detailRow = `<tr class="detail-row"><td colspan="10">
+      <div class="detail-grid">
+        <div><b>מספר הצעת מחיר:</b> ${esc(o.quoteNumber)||'—'}</div>
+        <div><b>זיכויים והחזרים ללקוח:</b> ${fmtMoney(o.customerCredits)}</div>
+        <div><b>תקציב שיווק לאדריכל (מהזמנה זו):</b> ${fmtMoney(o.marketingBudget)}</div>
+      </div>
+    </td></tr>`;
+    return mainRow + detailRow;
+  }
+
+  function renderOrdersTable(){
+    const filtered = getSorted(getFiltered());
+    document.getElementById('ordersBody').innerHTML = filtered.map(orderRowHtml).join('');
+    document.getElementById('emptyState').hidden = filtered.length>0;
+    document.getElementById('btnClearExamples').hidden = !orders.some(o=>o.isExample);
+
+    document.querySelectorAll('#ordersTable thead th[data-key]').forEach(th=>{
+      th.classList.remove('sorted-asc','sorted-desc');
+      if (th.dataset.key===sortKey) th.classList.add(sortDir==='asc'?'sorted-asc':'sorted-desc');
+    });
+  }
+
+  function render(){
+    renderStats();
+    renderArchitects();
+    updateArchitectOptions();
+    renderOrdersTable();
+    refreshArchitectModalIfOpen();
+  }
+
+  function renderRealizationsList(realizations){
+    const tbody = document.getElementById('realizationsBody');
+    tbody.innerHTML = realizations.length ? realizations.map(r=>`
+      <tr data-id="${esc(r.id)}">
+        <td class="num">${fmtMoney(r.amount)}</td>
+        <td>${esc(r.method)||'—'}</td>
+        <td class="actions"><button type="button" class="icon-btn danger" data-del-realization="${esc(r.id)}" title="מחיקה">🗑</button></td>
+      </tr>`).join('') : `<tr><td colspan="3" class="muted" style="text-align:center;padding:14px;">אין עדיין מימושים רשומים.</td></tr>`;
+  }
+
+  function openArchitectModal(docId){
+    const groups = computeArchitects(orders);
+    const g = groups.find(x=>x.docId===docId);
+    if (!g) return;
+    currentArchModalKey = g.key;
+    currentArchModalName = g.name;
+    currentArchModalNumber = g.number;
+    document.getElementById('architectModalTitle').textContent = `תקציב שיווק — ${g.name}`;
+    document.getElementById('archSummaryEarned').textContent = fmtMoney(g.marketing);
+    document.getElementById('archSummaryUsed').textContent = fmtMoney(g.realized);
+    document.getElementById('archSummaryRemaining').textContent = fmtMoney(g.remaining);
+    renderRealizationsList(g.realizations);
+    document.getElementById('realizationForm').reset();
+    document.getElementById('architectModalOverlay').hidden = false;
+  }
+
+  function refreshArchitectModalIfOpen(){
+    if (!currentArchModalKey) return;
+    if (document.getElementById('architectModalOverlay').hidden) return;
+    const groups = computeArchitects(orders);
+    const g = groups.find(x=>x.key===currentArchModalKey);
+    if (!g) return;
+    document.getElementById('archSummaryEarned').textContent = fmtMoney(g.marketing);
+    document.getElementById('archSummaryUsed').textContent = fmtMoney(g.realized);
+    document.getElementById('archSummaryRemaining').textContent = fmtMoney(g.remaining);
+    renderRealizationsList(g.realizations);
+  }
+
+  function closeArchitectModal(){
+    document.getElementById('architectModalOverlay').hidden = true;
+    currentArchModalKey = null;
+  }
+
+  function openNew(){
+    editingId = null;
+    bonusManuallyEdited = false;
+    marketingManuallyEdited = false;
+    document.getElementById('modalTitle').textContent = 'הזמנה חדשה';
+    const form = document.getElementById('orderForm');
+    form.reset();
+    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-orderStatus').value = 'הזמנה';
+    document.getElementById('f-handlingStatus').value = 'פתוח';
+    document.getElementById('f-bonusBudget').value = '';
+    document.getElementById('f-marketingBudget').value = '';
+    applyArchitectLock(null);
+    document.getElementById('modalOverlay').hidden = false;
+    document.getElementById('f-customerName').focus();
+  }
+
+  function openEdit(id){
+    const o = orders.find(x=>x.id===id);
+    if (!o) return;
+    editingId = id;
+    bonusManuallyEdited = true;
+    marketingManuallyEdited = true;
+    document.getElementById('modalTitle').textContent = 'עריכת הזמנה';
+    const form = document.getElementById('orderForm');
+    form.reset();
+    for (const key of ['date','customerNumber','customerName','architectName','architectNumber','quoteNumber','quoteNotified','orderNumber','orderAmount','orderNotified','orderStatus','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect','benefitNotified','handlingStatus']){
+      const el = document.getElementById('f-'+key);
+      if (!el) continue;
+      if (el.type==='checkbox') el.checked = !!o[key];
+      else el.value = o[key] ?? '';
+    }
+    handleArchitectNameInput();
+    document.getElementById('modalOverlay').hidden = false;
+  }
+
+  function closeModal(){
+    document.getElementById('modalOverlay').hidden = true;
+    editingId = null;
+  }
+
+  function bindEvents(){
+    document.getElementById('btnNew').addEventListener('click', openNew);
+    document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', e=>{
+      if (e.target.id==='modalOverlay') closeModal();
+    });
+    document.getElementById('btnCloseArchitectModal').addEventListener('click', closeArchitectModal);
+    document.getElementById('architectModalOverlay').addEventListener('click', e=>{
+      if (e.target.id==='architectModalOverlay') closeArchitectModal();
+    });
+    document.addEventListener('keydown', e=>{
+      if (e.key!=='Escape') return;
+      if (!document.getElementById('confirmOverlay').hidden) { resolveConfirm(false); return; }
+      if (!document.getElementById('modalOverlay').hidden) closeModal();
+      if (!document.getElementById('architectModalOverlay').hidden) closeArchitectModal();
+    });
+
+    document.getElementById('btnConfirmOk').addEventListener('click', ()=>resolveConfirm(true));
+    document.getElementById('btnConfirmCancel').addEventListener('click', ()=>resolveConfirm(false));
+    document.getElementById('confirmOverlay').addEventListener('click', e=>{
+      if (e.target.id==='confirmOverlay') resolveConfirm(false);
+    });
+
+    document.getElementById('architectBody').addEventListener('click', e=>{
+      const btn = e.target.closest('button[data-arch-edit]');
+      if (!btn) return;
+      openArchitectModal(btn.dataset.archEdit);
+    });
+
+    document.getElementById('realizationForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      if (!currentArchModalKey) return;
+      const amount = document.getElementById('f-realizationAmount').value;
+      const method = document.getElementById('f-realizationMethod').value;
+      addRealization(currentArchModalKey, currentArchModalName, currentArchModalNumber, amount, method);
+      document.getElementById('realizationForm').reset();
+    });
+
+    document.getElementById('realizationsBody').addEventListener('click', async e=>{
+      const btn = e.target.closest('button[data-del-realization]');
+      if (!btn || !currentArchModalKey) return;
+      if (await showConfirm('למחוק את המימוש?')) deleteRealization(currentArchModalKey, btn.dataset.delRealization);
+    });
+
+    document.getElementById('btnClearExamples').addEventListener('click', async ()=>{
+      if (await showConfirm('להסיר את כל נתוני הדוגמה?')) clearExamples();
+    });
+
+    document.getElementById('btnMsSignIn').addEventListener('click', signInWithMicrosoft);
+    document.getElementById('btnSkipSignIn').addEventListener('click', ()=>{
+      document.getElementById('msGateOverlay').hidden = true;
+      initLocalFallback();
+    });
+    document.getElementById('btnMsSignOut').addEventListener('click', signOutMicrosoft);
+
+    function recalcMarketingBudget(){
+      if (marketingManuallyEdited) return;
+      const amt = num(document.getElementById('f-orderAmount').value);
+      const credits = num(document.getElementById('f-customerCredits').value);
+      if (amt<=0 && credits<=0){
+        document.getElementById('f-marketingBudget').value = '';
+        return;
+      }
+      const val = amt*MARKETING_RATE - credits*CREDIT_CLAWBACK_RATE;
+      document.getElementById('f-marketingBudget').value = val.toFixed(2);
+    }
+
+    document.getElementById('f-orderAmount').addEventListener('input', e=>{
+      const amt = num(e.target.value);
+      if (!bonusManuallyEdited){
+        document.getElementById('f-bonusBudget').value = amt>0 ? (amt*BONUS_RATE).toFixed(2) : '';
+      }
+      recalcMarketingBudget();
+    });
+    document.getElementById('f-customerCredits').addEventListener('input', recalcMarketingBudget);
+    document.getElementById('f-bonusBudget').addEventListener('input', ()=>{ bonusManuallyEdited = true; });
+    document.getElementById('f-marketingBudget').addEventListener('input', ()=>{ marketingManuallyEdited = true; });
+
+    document.getElementById('f-architectName').addEventListener('input', handleArchitectNameInput);
+    document.getElementById('f-architectNumber').addEventListener('input', handleArchitectNumberInput);
+    document.getElementById('btnUnlockArchNumber').addEventListener('click', ()=>{
+      applyArchitectLock(null);
+      document.getElementById('f-architectNumber').focus();
+    });
+
+    document.getElementById('orderForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const data = {};
+      const numericFields = new Set(['orderAmount','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect']);
+      const booleanFields = ['quoteNotified','orderNotified','benefitNotified'];
+      for (const [key,val] of fd.entries()){
+        if (booleanFields.includes(key)) continue;
+        data[key] = numericFields.has(key) ? num(val) : val;
+      }
+      booleanFields.forEach(key=>{ data[key] = form.querySelector('#f-'+key).checked; });
+      saveOrder(data);
+      closeModal();
+    });
+
+    document.getElementById('search').addEventListener('input', e=>{ filterText = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterArchitect').addEventListener('change', e=>{ filterArchitect = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterOrderStatus').addEventListener('change', e=>{ filterOrderStatus = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterDateFrom').addEventListener('change', e=>{ filterDateFrom = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterDateTo').addEventListener('change', e=>{ filterDateTo = e.target.value; renderOrdersTable(); });
+    document.getElementById('architectSearch').addEventListener('input', e=>{ architectSearchText = e.target.value; renderArchitects(); });
+    document.getElementById('chipHandling').addEventListener('click', e=>{
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      filterHandling = btn.dataset.value;
+      document.querySelectorAll('#chipHandling .chip').forEach(c=>c.classList.toggle('active', c===btn));
+      renderOrdersTable();
+    });
+    document.getElementById('filterProcessState').addEventListener('change', e=>{ filterProcessState = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterNotifyStatus').addEventListener('change', e=>{ filterNotifyStatus = e.target.value; renderOrdersTable(); });
+
+    document.querySelectorAll('#ordersTable thead th[data-key]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.key;
+        if (sortKey===key) sortDir = sortDir==='asc' ? 'desc' : 'asc';
+        else { sortKey = key; sortDir = key==='date' ? 'desc' : 'asc'; }
+        renderOrdersTable();
+      });
+    });
+
+    document.getElementById('ordersBody').addEventListener('click', async e=>{
+      const ntoggle = e.target.closest('.ntoggle');
+      if (ntoggle){
+        const tr = e.target.closest('tr[data-id]');
+        toggleNotified(tr.dataset.id, ntoggle.dataset.field);
+        return;
+      }
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const tr = e.target.closest('tr[data-id]');
+      const id = tr.dataset.id;
+      if (btn.dataset.action==='edit') openEdit(id);
+      else if (btn.dataset.action==='delete'){
+        if (await showConfirm('למחוק את ההזמנה? הפעולה אינה הפיכה.')) deleteOrder(id);
+      } else if (btn.dataset.action==='toggle'){
+        if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+        renderOrdersTable();
+      }
+    });
+  }
+
+  bindEvents();
+  init();
+})();
+</script>
+</body>
+</html>
