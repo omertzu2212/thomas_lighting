@@ -770,7 +770,9 @@
       await activateGraphMode(result.account);
     } catch(e){
       console.error('sign-in failed', e);
-      errEl.textContent = 'ההתחברות נכשלה. ודאו שהאפליקציה קיבלה הרשאות ואישור מנהל, ונסו שוב.';
+      const code = (e && (e.errorCode || e.name)) || '';
+      const msg = (e && e.message) || String(e);
+      errEl.textContent = 'ההתחברות נכשלה' + (code ? (' [' + code + ']') : '') + ': ' + msg;
     }
   }
 
