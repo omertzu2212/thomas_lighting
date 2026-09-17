@@ -797,12 +797,15 @@
   }
 
   async function signOutMicrosoft(){
-    try{
-      const accounts = msalInstance ? msalInstance.getAllAccounts() : [];
-      if (accounts.length) await msalInstance.logoutPopup({ account: accounts[0] });
-    } catch(e){ console.error('sign-out error', e); }
     if (graphPollTimer) clearInterval(graphPollTimer);
     try{ localStorage.removeItem(GRAPH_FILE_ID_KEY); } catch(e){ /* ignore */ }
+    try{
+      const accounts = msalInstance ? msalInstance.getAllAccounts() : [];
+      if (accounts.length){
+        await msalInstance.logoutRedirect({ account: accounts[0] });
+        return; // navigates away
+      }
+    } catch(e){ console.error('sign-out error', e); }
     location.reload();
   }
 
@@ -825,7 +828,19 @@
   async function findWorkbookFile(){
     const cached = localStorage.getItem(GRAPH_FILE_ID_KEY);
     if (cached) return cached;
-    const q = encodeURIComponent(EXCEL_FILE_NAME.replace(/\.xlsx$/i, ''));
+    // Look the file up directly by its path in OneDrive first - this is exact and
+    // instant, unlike full-text search (which can also misfire: a " - " inside the
+    // filename gets parsed by OneDrive's search as a NOT operator and can hide the
+    // very file we're looking for).
+    try{
+      const encodedPath = EXCEL_FILE_NAME.split('/').map(encodeURIComponent).join('/');
+      const item = await graphFetch('/me/drive/root:/' + encodedPath);
+      if (item && item.id){
+        localStorage.setItem(GRAPH_FILE_ID_KEY, item.id);
+        return item.id;
+      }
+    } catch(e){ /* fall through to search below */ }
+    const q = encodeURIComponent(EXCEL_FILE_NAME.replace(/\.xlsx$/i, '').replace(/[-–—]/g, ' '));
     const data = await graphFetch("/me/drive/root/search(q='" + q + "')");
     const list = data.value || [];
     const match = list.find(f => f.name === EXCEL_FILE_NAME) || list.find(f => /\.xlsx$/i.test(f.name || ''));
