@@ -578,7 +578,10 @@
 
   const MSAL_CLIENT_ID = '05f020fc-091a-4ba3-9fc8-4c5a6a97a7b9';
   const MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';
-  const GRAPH_SCOPES = ['Files.ReadWrite', 'User.Read'];
+  // Sites.Read.All is needed to resolve the workbook's sharing link, since the file
+  // lives in a SharePoint team site's document library rather than in the signed-in
+  // user's own OneDrive (Files.ReadWrite alone isn't enough for that lookup).
+  const GRAPH_SCOPES = ['Files.ReadWrite', 'Sites.Read.All', 'User.Read'];
   const EXCEL_FILE_NAME = 'בסיס נתונים - מעקב עמלות אדריכלים.xlsx';
   // Direct sharing link to the workbook (copied from OneDrive/SharePoint's "Copy link").
   // Resolving by this link works no matter which site or folder the file lives in -
