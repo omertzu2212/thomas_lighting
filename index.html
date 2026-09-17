@@ -1659,8 +1659,20 @@
     });
   }
 
-  bindEvents();
-  init();
+  if (window.top !== window.self){
+    // Loaded inside an iframe (e.g. an in-app link preview) - Microsoft sign-in
+    // refuses to run there ("block_nested_popups"). Force opening at the top level.
+    const appEl = document.querySelector('.app');
+    if (appEl){
+      appEl.innerHTML = '<div style="padding:70px 20px;text-align:center;font-family:var(--font-body,sans-serif);direction:rtl;max-width:480px;margin:0 auto;">'
+        + '<p style="font-size:18px;margin:0 0 20px;color:var(--text,#2a2019);">הקישור נפתח כרגע בתוך חלון מוטבע, ומיקרוסופט לא מאפשרת התחברות במצב כזה.</p>'
+        + '<a href="' + location.href + '" target="_top" style="display:inline-block;padding:12px 26px;background:var(--accent,#a9762c);color:var(--accent-fg,#fff);border-radius:8px;text-decoration:none;font-weight:600;">פתחו בכרטיסייה נפרדת</a>'
+        + '</div>';
+    }
+  } else {
+    bindEvents();
+    init();
+  }
 })();
 </script>
 </body>
