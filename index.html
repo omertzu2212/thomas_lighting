@@ -580,6 +580,11 @@
   const MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';
   const GRAPH_SCOPES = ['Files.ReadWrite', 'User.Read'];
   const EXCEL_FILE_NAME = 'בסיס נתונים - מעקב עמלות אדריכלים.xlsx';
+  // Direct sharing link to the workbook (copied from OneDrive/SharePoint's "Copy link").
+  // Resolving by this link works no matter which site or folder the file lives in -
+  // this file specifically lives in a SharePoint team site's document library, not
+  // in anyone's personal OneDrive, so a plain /me/drive path lookup can never find it.
+  const SHARE_URL = 'https://thomaslighting.sharepoint.com/:x:/r/sites/ThomasShareFolder/Shared%20Documents/%D7%9E%D7%A2%D7%A7%D7%91%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D/%D7%91%D7%A1%D7%99%D7%A1%20%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%20-%20%D7%9E%D7%A2%D7%A7%D7%91%20%D7%A2%D7%9E%D7%9C%D7%95%D7%AA%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D.xlsx?d=w5ae671be47bd48bc8c612bda9d6c4ef0&csf=1&web=1&e=hVUwkQ';
   const GRAPH_FILE_ID_KEY = 'architect-graph-file-id';
   const ORDERS_TABLE = 'Orders';
   const REALIZATIONS_TABLE = 'Realizations';
@@ -592,6 +597,7 @@
   let graphAvailable = false;
   let graphAccessToken = null;
   let graphFileId = null;
+  let graphDriveId = null; // set when the workbook lives in a SharePoint site's drive, not the user's own OneDrive
   let graphPollTimer = null;
 
   let db = null;
@@ -825,18 +831,47 @@
     try{ return JSON.parse(text); } catch(e){ return null; }
   }
 
+  function encodeShareUrl(url){
+    // Per Microsoft Graph's documented recipe for turning a sharing URL into a
+    // "shares" API token: base64-encode it, then make that URL-safe, then prefix "u!".
+    const b64 = btoa(unescape(encodeURIComponent(url)));
+    const b64url = b64.replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-');
+    return 'u!' + b64url;
+  }
+
+  function driveItemBase(){
+    return (graphDriveId ? ('/drives/' + graphDriveId) : '/me/drive') + '/items/' + graphFileId;
+  }
+
   async function findWorkbookFile(){
-    const cached = localStorage.getItem(GRAPH_FILE_ID_KEY);
-    if (cached) return cached;
-    // Look the file up directly by its path in OneDrive first - this is exact and
-    // instant, unlike full-text search (which can also misfire: a " - " inside the
-    // filename gets parsed by OneDrive's search as a NOT operator and can hide the
-    // very file we're looking for).
+    const cachedRaw = localStorage.getItem(GRAPH_FILE_ID_KEY);
+    if (cachedRaw){
+      try{
+        const cached = JSON.parse(cachedRaw);
+        if (cached && cached.id){ graphDriveId = cached.driveId || null; return cached.id; }
+      } catch(e){ /* older cache format - ignore and re-resolve below */ }
+    }
+    // Resolve via the workbook's own sharing link first - this is exact and works
+    // regardless of whether the file lives in someone's personal OneDrive or (as
+    // here) a SharePoint team site's document library, which a plain /me/drive
+    // path lookup can never reach.
+    try{
+      const token = encodeShareUrl(SHARE_URL);
+      const item = await graphFetch('/shares/' + token + '/driveItem');
+      if (item && item.id && item.parentReference && item.parentReference.driveId){
+        graphDriveId = item.parentReference.driveId;
+        localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: graphDriveId }));
+        return item.id;
+      }
+    } catch(e){ console.error('share link resolve failed', e); }
+    // Fallbacks, for a file that instead lives directly in the signed-in user's own
+    // OneDrive: exact path lookup, then full-text search as a last resort.
     try{
       const encodedPath = EXCEL_FILE_NAME.split('/').map(encodeURIComponent).join('/');
       const item = await graphFetch('/me/drive/root:/' + encodedPath);
       if (item && item.id){
-        localStorage.setItem(GRAPH_FILE_ID_KEY, item.id);
+        graphDriveId = null;
+        localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: null }));
         return item.id;
       }
     } catch(e){ /* fall through to search below */ }
@@ -845,16 +880,17 @@
     const list = data.value || [];
     const match = list.find(f => f.name === EXCEL_FILE_NAME) || list.find(f => /\.xlsx$/i.test(f.name || ''));
     if (!match) throw new Error('workbook-not-found');
-    localStorage.setItem(GRAPH_FILE_ID_KEY, match.id);
+    graphDriveId = null;
+    localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: match.id, driveId: null }));
     return match.id;
   }
 
   async function graphReadTable(tableName){
-    const data = await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows');
+    const data = await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows');
     return (data.value || []).map(r => r.values[0]);
   }
   async function graphAddRow(tableName, values){
-    await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows', {
+    await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows', {
       method: 'POST', body: JSON.stringify({ values: [values] })
     });
   }
@@ -864,12 +900,12 @@
     return -1;
   }
   async function graphUpdateRowAt(tableName, index, values){
-    await graphFetch('/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows/' + index, {
+    await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows/' + index, {
       method: 'PATCH', body: JSON.stringify({ values: [values] })
     });
   }
   async function graphDeleteRowAt(tableName, index){
-    const base = '/me/drive/items/' + graphFileId + '/workbook/tables/' + tableName + '/rows/';
+    const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
     try{
       await graphFetch(base + index, { method: 'DELETE' });
     } catch(e1){
