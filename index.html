@@ -743,15 +743,23 @@
         auth: {
           clientId: MSAL_CLIENT_ID,
           authority: 'https://login.microsoftonline.com/' + MSAL_TENANT_ID,
-          // A dedicated, empty page - not the app itself - so the popup MSAL opens
-          // never re-runs the whole app (which was re-triggering a nested loginPopup
-          // and failing with "block_nested_popups"). MSAL closes this popup on its own.
-          redirectUri: window.location.origin + window.location.pathname + 'blank.html',
+          redirectUri: window.location.origin + window.location.pathname,
         },
         cache: { cacheLocation: 'localStorage' }
       });
       await msalInstance.initialize();
-      try{ await msalInstance.handleRedirectPromise(); } catch(e){ console.error('redirect handling error', e); }
+      // Using a full-page redirect (not a popup): Microsoft's login pages send
+      // COOP headers that sever the popup<->opener link in modern browsers, which
+      // left loginPopup() hanging forever after a successful sign-in. A redirect
+      // navigates this same tab away and back, so handleRedirectPromise() below
+      // picks the result up directly on the way back - no cross-window messaging.
+      try{
+        const response = await msalInstance.handleRedirectPromise();
+        if (response && response.accessToken){
+          graphAccessToken = response.accessToken;
+          await activateGraphMode(response.account);
+        }
+      } catch(e){ console.error('redirect handling error', e); }
       return true;
     } catch(e){ console.error('msal init error', e); return false; }
   }
@@ -767,10 +775,19 @@
   async function signInWithMicrosoft(){
     const errEl = document.getElementById('msGateError');
     errEl.textContent = '';
+    // A previous attempt that failed mid-flight (e.g. block_nested_popups) can leave
+    // MSAL's "interaction in progress" flag stuck in sessionStorage, blocking every
+    // later attempt with interaction_in_progress. Clear it before starting a fresh one.
     try{
-      const result = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
-      graphAccessToken = result.accessToken;
-      await activateGraphMode(result.account);
+      Object.keys(sessionStorage).forEach(function(k){
+        if (k.indexOf('interaction.status') !== -1) sessionStorage.removeItem(k);
+      });
+    } catch(e){ /* ignore */ }
+    try{
+      // Full-page redirect: navigates this tab away, so nothing after this line runs.
+      // The result is picked up in initMsal() -> handleRedirectPromise() once Microsoft
+      // sends the browser back here.
+      await msalInstance.loginRedirect({ scopes: GRAPH_SCOPES });
     } catch(e){
       console.error('sign-in failed', e);
       const code = (e && (e.errorCode || e.name)) || '';
@@ -993,6 +1010,7 @@
 
     dbAvailable = false;
     const msalReady = await initMsal();
+    if (graphAvailable) return; // initMsal() already activated it via a completed redirect
     if (msalReady){
       const silent = await acquireGraphTokenSilent();
       if (silent){
