@@ -743,7 +743,10 @@
         auth: {
           clientId: MSAL_CLIENT_ID,
           authority: 'https://login.microsoftonline.com/' + MSAL_TENANT_ID,
-          redirectUri: window.location.origin + window.location.pathname,
+          // A dedicated, empty page - not the app itself - so the popup MSAL opens
+          // never re-runs the whole app (which was re-triggering a nested loginPopup
+          // and failing with "block_nested_popups"). MSAL closes this popup on its own.
+          redirectUri: window.location.origin + window.location.pathname + 'blank.html',
         },
         cache: { cacheLocation: 'localStorage' }
       });
