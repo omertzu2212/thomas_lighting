@@ -578,17 +578,29 @@
 
   const MSAL_CLIENT_ID = '05f020fc-091a-4ba3-9fc8-4c5a6a97a7b9';
   const MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';
-  // Sites.Read.All is needed to resolve the workbook's sharing link, since the file
-  // lives in a SharePoint team site's document library rather than in the signed-in
-  // user's own OneDrive (Files.ReadWrite alone isn't enough for that lookup).
-  const GRAPH_SCOPES = ['Files.ReadWrite', 'Sites.Read.All', 'User.Read'];
+  // Sites.Read.All resolves the workbook's location, but is read-only - it can't
+  // explain why writes into a SharePoint team site's document library keep failing
+  // with EditModeAccessDenied even for a user with real edit access. Sites.ReadWrite.All
+  // is the delegated permission that actually allows writing to a SharePoint site's
+  // drive (Files.ReadWrite alone only reliably covers the user's own OneDrive).
+  const GRAPH_SCOPES = ['Files.ReadWrite', 'Sites.Read.All', 'Sites.ReadWrite.All', 'User.Read'];
   const EXCEL_FILE_NAME = 'בסיס נתונים - מעקב עמלות אדריכלים.xlsx';
   // Direct sharing link to the workbook (copied from OneDrive/SharePoint's "Copy link").
   // Resolving by this link works no matter which site or folder the file lives in -
   // this file specifically lives in a SharePoint team site's document library, not
   // in anyone's personal OneDrive, so a plain /me/drive path lookup can never find it.
   const SHARE_URL = 'https://thomaslighting.sharepoint.com/:x:/r/sites/ThomasShareFolder/Shared%20Documents/%D7%9E%D7%A2%D7%A7%D7%91%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D/%D7%91%D7%A1%D7%99%D7%A1%20%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%20-%20%D7%9E%D7%A2%D7%A7%D7%91%20%D7%A2%D7%9E%D7%9C%D7%95%D7%AA%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D.xlsx?d=w5ae671be47bd48bc8c612bda9d6c4ef0&csf=1&web=1&e=hVUwkQ';
-  const GRAPH_FILE_ID_KEY = 'architect-graph-file-id';
+  // The SharePoint site/library/folder the workbook lives in, used as a more direct
+  // lookup than the share link above: resolving through the link can bind the Excel
+  // editing session to the LINK's own permission level (often view-only by default)
+  // instead of the signed-in user's real, broader permission on the site - which is
+  // exactly what produced "EditModeAccessDenied" on every write even though the user
+  // has genuine edit access. Going through the site + drive path uses the user's own
+  // delegated permission instead.
+  const SP_HOSTNAME = 'thomaslighting.sharepoint.com';
+  const SP_SITE_PATH = '/sites/ThomasShareFolder';
+  const SP_FILE_PATH = 'מעקב אדריכלים/' + EXCEL_FILE_NAME; // relative to the site's default document library root
+  const GRAPH_FILE_ID_KEY = 'architect-graph-file-id-v2'; // v2: bumped so old cached lookups (from the share-link method) don't skip the new site-path resolution
   const ORDERS_TABLE = 'Orders';
   const REALIZATIONS_TABLE = 'Realizations';
   const ORDERS_COLUMNS = ['id','date','customerNumber','customerName','architectName','architectNumber','quoteNumber','quoteNotified','orderNumber','orderAmount','orderNotified','orderStatus','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect','benefitNotified','handlingStatus'];
@@ -854,10 +866,25 @@
         if (cached && cached.id){ graphDriveId = cached.driveId || null; return cached.id; }
       } catch(e){ /* older cache format - ignore and re-resolve below */ }
     }
-    // Resolve via the workbook's own sharing link first - this is exact and works
-    // regardless of whether the file lives in someone's personal OneDrive or (as
-    // here) a SharePoint team site's document library, which a plain /me/drive
-    // path lookup can never reach.
+    // Resolve via the SharePoint site's own drive + folder path first - this uses the
+    // signed-in user's real delegated permission on the site (edit or view, whichever
+    // they actually have), rather than a sharing link's own, possibly narrower,
+    // permission ceiling.
+    try{
+      const site = await graphFetch('/sites/' + SP_HOSTNAME + ':' + SP_SITE_PATH);
+      if (site && site.id){
+        const encodedFilePath = SP_FILE_PATH.split('/').map(encodeURIComponent).join('/');
+        const item = await graphFetch('/sites/' + site.id + '/drive/root:/' + encodedFilePath);
+        if (item && item.id && item.parentReference && item.parentReference.driveId){
+          graphDriveId = item.parentReference.driveId;
+          localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: graphDriveId }));
+          return item.id;
+        }
+      }
+    } catch(e){ console.error('SharePoint site/path resolve failed', e); }
+    // Resolve via the workbook's own sharing link as a fallback - works regardless of
+    // whether the file lives in someone's personal OneDrive or a SharePoint team
+    // site's document library, which a plain /me/drive path lookup can never reach.
     try{
       const token = encodeShareUrl(SHARE_URL);
       const item = await graphFetch('/shares/' + token + '/driveItem');
