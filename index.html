@@ -831,9 +831,26 @@
   }
 
   // ---------- Microsoft Graph (Excel workbook) I/O ----------
+  let graphSessionId = null;
+
+  async function createWorkbookSession(){
+    // For a workbook that lives in a SharePoint document library (not the signed-in
+    // user's own OneDrive), Excel's "sessionless" API mode can silently fail to
+    // carry through the user's real edit permission - reads work, writes come back
+    // "EditModeAccessDenied" even for a genuine editor. Negotiating an explicit,
+    // persisted workbook session and sending it on every call avoids that.
+    try{
+      const res = await graphFetch(driveItemBase() + '/workbook/createSession', {
+        method: 'POST', body: JSON.stringify({ persistChanges: true })
+      });
+      return (res && res.id) || null;
+    } catch(e){ console.error('createSession failed', e); return null; }
+  }
+
   async function graphFetch(path, options){
     options = options || {};
     const headers = Object.assign({ 'Authorization': 'Bearer ' + graphAccessToken, 'Content-Type': 'application/json' }, options.headers || {});
+    if (graphSessionId && path.indexOf('/workbook/') !== -1) headers['workbook-session-id'] = graphSessionId;
     const res = await fetch('https://graph.microsoft.com/v1.0' + path, Object.assign({}, options, { headers }));
     if (!res.ok){
       const text = await res.text().catch(()=>'');
@@ -971,6 +988,7 @@
     document.getElementById('msAccountLabel').textContent = (account && (account.username || account.name)) || '';
     try{
       graphFileId = await findWorkbookFile();
+      graphSessionId = await createWorkbookSession();
       await loadFromGraph();
       graphAvailable = true;
       document.getElementById('syncNote').textContent = 'הנתונים נשמרים בקובץ ה-Excel שלכם ב-OneDrive, ומשותפים לכל מי שמחובר.';
