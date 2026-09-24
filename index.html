@@ -204,13 +204,28 @@
 
   /* ---------- toolbar ---------- */
   .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
-  .toolbar input[type="search"], .toolbar select, .toolbar input[type="date"]{
+  .toolbar input[type="search"], .toolbar select, .toolbar input[type="date"], .toolbar .date-display{
     font-family:var(--font-body);font-size:13.5px;padding:9px 12px;
     border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);
   }
   .toolbar input[type="search"]{flex:1 1 220px;min-width:180px;}
   .date-range{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-muted);}
-  .date-range input[type="date"]{padding:8px 10px;font-size:13px;}
+  .date-range input[type="date"], .date-range .date-display{padding:8px 10px;font-size:13px;}
+  /* Native <input type="date"> always renders in the browser/OS locale's own date
+     order (often mm/dd/yyyy), regardless of this page's Hebrew lang/dir - there's no
+     supported way to force its internal formatting from the page. So each date field
+     is a small wrapper: a plain, always-dd/mm/yyyy read-only text field for display,
+     with the real native date input stacked invisibly on top of it so a click still
+     opens the normal calendar picker and keeps all the existing value/change logic
+     working unchanged. */
+  .date-field{position:relative;display:inline-flex;vertical-align:middle;}
+  .field .date-field{display:block;width:100%;}
+  .date-field input[type="date"]{
+    position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;
+    opacity:0;cursor:pointer;
+  }
+  .date-display{width:118px;cursor:pointer;}
+  .field .date-display{width:100%;}
   .chip-group{display:flex;gap:6px;}
   .chip{
     font-family:var(--font-body);font-size:13px;padding:8px 14px;border-radius:999px;
@@ -954,38 +969,41 @@
   }
   async function graphDeleteRowAt(tableName, index){
     const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
+    // The bare-index DELETE and the itemAt(...)/delete action both hit a documented
+    // Excel Graph API limitation ("ApiNotFound") for table rows in a workbook that
+    // lives in a SharePoint document library and is open for co-authoring - it is not
+    // a permissions problem. The reliable workaround is to resolve the row's
+    // underlying worksheet range and delete *that* range instead (shifting the rows
+    // below it up), which goes through a completely different API path unaffected by
+    // the bug. Trying this first (instead of after two requests we already know will
+    // fail on this workbook) also keeps the browser console free of the harmless-but
+    // -alarming-looking 400 errors those two attempts otherwise log on every delete.
     try{
-      await graphFetch(base + index, { method: 'DELETE' });
+      const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
+      const address = rangeInfo && rangeInfo.address;
+      if (!address) throw new Error('row-range-not-found');
+      const bangIdx = address.lastIndexOf('!');
+      const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
+      const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
+      const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
+      if (!sheetName) throw new Error('row-sheet-not-found');
+      await graphFetch(
+        driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')/delete",
+        { method: 'POST', body: JSON.stringify({ shift: 'Up' }) }
+      );
       return;
-    } catch(e1){
-      // Some tenants reject the plain DELETE-by-index verb; fall back to the
-      // POST-based delete action used elsewhere in the Excel Graph API.
+    } catch(e3){
+      // Fall back to the older approaches, in case this workbook is ever moved
+      // somewhere (e.g. a personal OneDrive) where they do work.
       try{
-        await graphFetch(base + 'itemAt(index=' + index + ')/delete', { method: 'POST' });
+        await graphFetch(base + index, { method: 'DELETE' });
         return;
-      } catch(e2){
-        // Both the bare-index DELETE and the itemAt(...)/delete action are a documented
-        // Excel Graph API limitation ("ApiNotFound") for table rows in a workbook that
-        // lives in a SharePoint document library and is open for co-authoring - it is
-        // not a permissions problem. The reliable workaround is to resolve the row's
-        // underlying worksheet range and delete *that* range instead (shifting the rows
-        // below it up), which goes through a completely different API path unaffected
-        // by the bug.
+      } catch(e1){
         try{
-          const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
-          const address = rangeInfo && rangeInfo.address;
-          if (!address) throw new Error('row-range-not-found');
-          const bangIdx = address.lastIndexOf('!');
-          const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
-          const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
-          const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
-          if (!sheetName) throw new Error('row-sheet-not-found');
-          await graphFetch(
-            driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')/delete",
-            { method: 'POST', body: JSON.stringify({ shift: 'Up' }) }
-          );
-        } catch(e3){
-          throw new Error('DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + '] | range/delete failed: [' + e3.message + ']');
+          await graphFetch(base + 'itemAt(index=' + index + ')/delete', { method: 'POST' });
+          return;
+        } catch(e2){
+          throw new Error('range/delete failed: [' + e3.message + '] | DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + ']');
         }
       }
     }
@@ -1656,7 +1674,53 @@
     editingId = null;
   }
 
+  // Wraps a native <input type="date"> with an always-dd/mm/yyyy read-only text
+  // field on top of it visually, while the native input stays functionally in
+  // place (invisible, same size, still receives the click that opens the native
+  // calendar picker). Overriding the element's own "value" property means every
+  // existing place in the code that does `el.value = ...` keeps working exactly as
+  // before and the display just follows along automatically.
+  function enhanceDateField(id){
+    const native = document.getElementById(id);
+    if (!native || native.dataset.dateEnhanced) return;
+    native.dataset.dateEnhanced = '1';
+
+    const wrap = document.createElement('span');
+    wrap.className = 'date-field';
+    native.parentNode.insertBefore(wrap, native);
+    wrap.appendChild(native);
+
+    const display = document.createElement('input');
+    display.type = 'text';
+    display.className = 'date-display';
+    display.placeholder = 'dd/mm/yyyy';
+    display.readOnly = true;
+    display.tabIndex = -1;
+    wrap.appendChild(display);
+
+    function isoToDisplay(iso){
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? (m[3] + '/' + m[2] + '/' + m[1]) : '';
+    }
+    function sync(){ display.value = isoToDisplay(native.value); }
+    sync();
+    native.addEventListener('change', sync);
+    native.addEventListener('input', sync);
+
+    try{
+      const valueDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      Object.defineProperty(native, 'value', {
+        configurable: true,
+        get(){ return valueDesc.get.call(native); },
+        set(v){ valueDesc.set.call(native, v); sync(); }
+      });
+    } catch(e){ /* if this ever fails, the 'change'/'input' listeners above still cover normal usage */ }
+  }
+
   function bindEvents(){
+    enhanceDateField('f-date');
+    enhanceDateField('filterDateFrom');
+    enhanceDateField('filterDateTo');
     document.getElementById('btnNew').addEventListener('click', openNew);
     document.getElementById('btnCloseModal').addEventListener('click', closeModal);
     document.getElementById('btnCancel').addEventListener('click', closeModal);
