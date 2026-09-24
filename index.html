@@ -294,6 +294,7 @@
 </head>
 <body>
 
+
 <div class="app" dir="rtl" lang="he">
   <header class="topbar">
     <div class="brand">
@@ -955,13 +956,37 @@
     const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
     try{
       await graphFetch(base + index, { method: 'DELETE' });
+      return;
     } catch(e1){
       // Some tenants reject the plain DELETE-by-index verb; fall back to the
       // POST-based delete action used elsewhere in the Excel Graph API.
       try{
         await graphFetch(base + 'itemAt(index=' + index + ')/delete', { method: 'POST' });
+        return;
       } catch(e2){
-        throw new Error('DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + ']');
+        // Both the bare-index DELETE and the itemAt(...)/delete action are a documented
+        // Excel Graph API limitation ("ApiNotFound") for table rows in a workbook that
+        // lives in a SharePoint document library and is open for co-authoring - it is
+        // not a permissions problem. The reliable workaround is to resolve the row's
+        // underlying worksheet range and delete *that* range instead (shifting the rows
+        // below it up), which goes through a completely different API path unaffected
+        // by the bug.
+        try{
+          const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
+          const address = rangeInfo && rangeInfo.address;
+          if (!address) throw new Error('row-range-not-found');
+          const bangIdx = address.lastIndexOf('!');
+          const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
+          const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
+          const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
+          if (!sheetName) throw new Error('row-sheet-not-found');
+          await graphFetch(
+            driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')/delete",
+            { method: 'POST', body: JSON.stringify({ shift: 'Up' }) }
+          );
+        } catch(e3){
+          throw new Error('DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + '] | range/delete failed: [' + e3.message + ']');
+        }
       }
     }
   }
