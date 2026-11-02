@@ -6,6 +6,7 @@
 <title>מעקב עמלות אדריכלים</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;600;700&family=Heebo:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.22.0/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#faf7f2;
@@ -373,6 +374,7 @@
   <section class="panel">
     <div class="panel-head">
       <h2>הזמנות</h2>
+      <button type="button" class="btn btn-ghost" id="btnExportExcel">⇩ ייצוא לאקסל</button>
       <button type="button" class="btn btn-ghost" id="btnClearExamples" hidden>נקה נתוני דוגמה</button>
     </div>
     <div class="toolbar">
@@ -434,6 +436,7 @@
   </section>
 
   <datalist id="architectNames"></datalist>
+  <datalist id="customerNames"></datalist>
 
   <div class="modal-overlay" id="modalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -459,7 +462,7 @@
 
           <div class="form-row cols-4">
             <div class="field"><label for="f-customerNumber">מספר לקוח</label><input type="text" id="f-customerNumber" name="customerNumber"></div>
-            <div class="field"><label for="f-customerName">שם לקוח</label><input type="text" id="f-customerName" name="customerName" required></div>
+            <div class="field"><label for="f-customerName">שם לקוח</label><input type="text" id="f-customerName" name="customerName" list="customerNames" autocomplete="off" required></div>
             <div class="field">
               <label for="f-architectNumber">מספר אדריכל</label>
               <div class="input-with-action">
@@ -681,12 +684,16 @@
 
   let architectNumberUnlocked = true;
 
-  function getArchitectDirectory(){
+  // Builds a {byName, byNumber} lookup from the existing orders, for a given pair of
+  // fields (e.g. architectName/architectNumber, or customerName/customerNumber) - used
+  // to recognize a previously-seen architect or customer and auto-fill their other
+  // field instead of making the person retype it every time.
+  function buildPersonDirectory(nameKey, numberKey){
     const byName = new Map();
     const byNumber = new Map();
     orders.forEach(o=>{
-      const name = (o.architectName||'').trim();
-      const number = (o.architectNumber||'').trim();
+      const name = (o[nameKey]||'').trim();
+      const number = (o[numberKey]||'').trim();
       if (!name) return;
       const key = name.toLowerCase();
       if (number && (!byName.has(key) || !byName.get(key).number)) byName.set(key, {name, number});
@@ -695,6 +702,8 @@
     });
     return { byName, byNumber };
   }
+  function getArchitectDirectory(){ return buildPersonDirectory('architectName','architectNumber'); }
+  function getCustomerDirectory(){ return buildPersonDirectory('customerName','customerNumber'); }
 
   function applyArchitectLock(matchedNumber){
     const input = document.getElementById('f-architectNumber');
@@ -732,11 +741,19 @@
     if (!architectNumberUnlocked) return;
     const hint = document.getElementById('archNumberHint');
     const numberInput = document.getElementById('f-architectNumber');
+    const nameInput = document.getElementById('f-architectName');
     const number = numberInput.value.trim();
-    const currentName = document.getElementById('f-architectName').value.trim();
+    const currentName = nameInput.value.trim();
     if (!number){ hint.textContent=''; hint.classList.remove('warn'); return; }
     const dir = getArchitectDirectory();
     const existingName = dir.byNumber.get(number);
+    if (existingName && !currentName){
+      // Recognized architect code with no name typed yet - fill the name in
+      // automatically instead of just warning that the code already exists.
+      nameInput.value = existingName;
+      applyArchitectLock(number);
+      return;
+    }
     if (existingName && existingName.toLowerCase() !== currentName.toLowerCase()){
       hint.textContent = `שים לב: קוד זה כבר שייך לאדריכל "${existingName}" – ייתכן שמדובר באדריכל כפול.`;
       hint.classList.add('warn');
@@ -744,6 +761,27 @@
       hint.textContent = '';
       hint.classList.remove('warn');
     }
+  }
+
+  // Customer auto-fill: recognizes a customer number or name already used in a
+  // previous order and fills in the matching counterpart, the same way the architect
+  // fields above do - but without the architect fields' "lock" behavior, since a
+  // customer number here is just a convenience lookup, not a de-duplication key.
+  function handleCustomerNumberInput(){
+    const numberInput = document.getElementById('f-customerNumber');
+    const nameInput = document.getElementById('f-customerName');
+    const number = numberInput.value.trim();
+    if (!number || nameInput.value.trim()) return;
+    const existingName = getCustomerDirectory().byNumber.get(number);
+    if (existingName) nameInput.value = existingName;
+  }
+  function handleCustomerNameInput(){
+    const nameInput = document.getElementById('f-customerName');
+    const numberInput = document.getElementById('f-customerNumber');
+    const name = nameInput.value.trim().toLowerCase();
+    if (!name || numberInput.value.trim()) return;
+    const match = getCustomerDirectory().byName.get(name);
+    if (match && match.number) numberInput.value = match.number;
   }
   function archDocId(key){
     let h = 0;
@@ -1415,6 +1453,54 @@
     });
   }
 
+  // key -> Hebrew column header, in the order they should appear in the exported file.
+  const ORDER_EXPORT_COLUMNS = [
+    ['date','תאריך'],
+    ['customerNumber','מספר לקוח'],
+    ['customerName','שם לקוח'],
+    ['architectNumber','מספר אדריכל'],
+    ['architectName','שם אדריכל'],
+    ['quoteNumber','מספר הצעת מחיר'],
+    ['quoteNotified','נמסרה הודעה על הצעת המחיר'],
+    ['orderNumber','מספר הזמנה'],
+    ['orderAmount','סכום הזמנה'],
+    ['orderStatus','סטטוס הזמנה'],
+    ['orderNotified','נמסרה הודעה על ההזמנה'],
+    ['paidByCustomer','שולם ע"י הלקוח'],
+    ['customerCredits','זיכויים והחזרים ללקוח'],
+    ['bonusBudget','עמלת אדריכל'],
+    ['paidToArchitect','שולם לאדריכל'],
+    ['marketingBudget','תקציב שיווק לאדריכל'],
+    ['benefitNotified','נמסרה הודעה על ההטבה'],
+    ['handlingStatus','סטטוס טיפול'],
+  ];
+
+  // Exports exactly what's currently shown in the orders table (same filters/sort
+  // the person has applied), as a plain .xlsx file they can download and send on.
+  function exportOrdersToExcel(){
+    if (typeof XLSX === 'undefined'){
+      showBanner('לא ניתן לייצא כרגע - ספריית הייצוא לא נטענה. בדקו את החיבור לאינטרנט ונסו שוב.');
+      return;
+    }
+    const list = getSorted(getFiltered());
+    if (!list.length){
+      showBanner('אין הזמנות להצגה עם הסינון הנוכחי - אין מה לייצא.', 'info');
+      return;
+    }
+    const header = ORDER_EXPORT_COLUMNS.map(c=>c[1]);
+    const rows = list.map(o => ORDER_EXPORT_COLUMNS.map(([key])=>{
+      const v = o[key];
+      if (BOOL_ORDER_FIELDS.has(key)) return v ? 'כן' : 'לא';
+      if (NUM_ORDER_FIELDS.has(key)) return num(v);
+      return v != null ? v : '';
+    }));
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = header.map(()=>({ wch: 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'הזמנות');
+    XLSX.writeFile(wb, 'הזמנות-' + new Date().toISOString().slice(0,10) + '.xlsx');
+  }
+
   function computeStats(list){
     const archGroups = computeArchitects(list);
     return {
@@ -1514,6 +1600,9 @@
     if (names.includes(current)) sel.value = current; else { sel.value='all'; filterArchitect='all'; }
 
     document.getElementById('architectNames').innerHTML = names.map(n=>`<option value="${esc(n)}">`).join('');
+
+    const customerNames = [...new Set(orders.map(o=>o.customerName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    document.getElementById('customerNames').innerHTML = customerNames.map(n=>`<option value="${esc(n)}">`).join('');
 
     const methods = [...new Set(Object.values(architectMeta).flatMap(m=>(m.realizations||[]).map(r=>r.method)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
     document.getElementById('realizationMethods').innerHTML = methods.map(m=>`<option value="${esc(m)}">`).join('');
@@ -1862,8 +1951,12 @@
       applyArchitectLock(null);
       document.getElementById('f-architectNumber').focus();
     });
+    document.getElementById('f-customerNumber').addEventListener('input', handleCustomerNumberInput);
+    document.getElementById('f-customerName').addEventListener('input', handleCustomerNameInput);
 
-    document.getElementById('orderForm').addEventListener('submit', e=>{
+    document.getElementById('btnExportExcel').addEventListener('click', exportOrdersToExcel);
+
+    document.getElementById('orderForm').addEventListener('submit', async e=>{
       e.preventDefault();
       const form = e.target;
       const fd = new FormData(form);
@@ -1875,6 +1968,18 @@
         data[key] = numericFields.has(key) ? num(val) : val;
       }
       booleanFields.forEach(key=>{ data[key] = form.querySelector('#f-'+key).checked; });
+
+      const orderNumber = String(data.orderNumber||'').trim();
+      if (orderNumber){
+        const dup = orders.find(o => o.id!==editingId && String(o.orderNumber||'').trim() === orderNumber);
+        if (dup){
+          const ok = await showConfirm(
+            `כבר קיימת הזמנה עם מספר "${orderNumber}" (לקוח: ${dup.customerName||'—'}, תאריך: ${fmtDate(dup.date)}). לשמור בכל זאת?`
+          );
+          if (!ok) return; // modal stays open so the number can be corrected
+        }
+      }
+
       saveOrder(data);
       closeModal();
     });
