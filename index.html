@@ -3,656 +3,874 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>מעקב החזרי לקוחות</title>
+<title>מעקב עמלות אדריכלים</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;600;700&family=Heebo:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@5.22.0/lib/msal-browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --bg: #FAF8F4;
-    --surface: #FFFFFF;
-    --surface-2: #F3EFE7;
-    --border: #E6DFD2;
-    --ink: #262218;
-    --ink-secondary: #5B5445;
-    --ink-muted: #8C8371;
-    --accent: #B9791E;
-    --accent-ink: #FFFFFF;
-    --accent-wash: #FBEEDA;
-    --danger: #B4432E;
-    --danger-wash: #F8E7E2;
-    --success: #3F7D52;
-    --shadow: 0 1px 2px rgba(38,34,24,0.06), 0 4px 16px rgba(38,34,24,0.05);
-    color-scheme: light;
+  :root{
+    --bg:#faf7f2;
+    --surface:#ffffff;
+    --surface-2:#f2ebdd;
+    --border:#e5d9c3;
+    --text:#2a2019;
+    --text-muted:#79695a;
+    --accent:#a9762c;
+    --accent-hover:#8d6222;
+    --accent-fg:#fffaf1;
+    --accent-soft:#f4e3c3;
+    --danger:#a8442e;
+    --danger-soft:#f6ddd5;
+    --shadow:0 10px 30px -12px rgba(41,28,12,.25);
+    --st-ordered-bg:#dde8f6; --st-ordered-fg:#2c5b8c;
+    --st-delivered-bg:#dcefe9; --st-delivered-fg:#1c6e5c;
+    --st-open-bg:#faead0; --st-open-fg:#8a5a0a;
+    --st-closed-bg:#e1f0e0; --st-closed-fg:#286a3a;
+    --font-display:'Frank Ruhl Libre','Times New Roman',serif;
+    --font-body:'Heebo','Segoe UI',Arial,sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #171510;
-      --surface: #211E17;
-      --surface-2: #2A261D;
-      --border: #3A352A;
-      --ink: #F2EEE4;
-      --ink-secondary: #C9C0AC;
-      --ink-muted: #948A75;
-      --accent: #E3A64C;
-      --accent-ink: #201804;
-      --accent-wash: #362B15;
-      --danger: #E08268;
-      --danger-wash: #3A231D;
-      --success: #7FC493;
-      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.35);
-      color-scheme: dark;
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#19140f;
+      --surface:#221b14;
+      --surface-2:#2b2218;
+      --border:#3c2f21;
+      --text:#f2e9db;
+      --text-muted:#b3a28c;
+      --accent:#dba85a;
+      --accent-hover:#eabb73;
+      --accent-fg:#221a0f;
+      --accent-soft:#3a2c17;
+      --danger:#e08a6e;
+      --danger-soft:#3a2019;
+      --shadow:0 10px 30px -12px rgba(0,0,0,.5);
+      --st-ordered-bg:#1c2c3d; --st-ordered-fg:#9dc2ea;
+      --st-delivered-bg:#153229; --st-delivered-fg:#7fd3ba;
+      --st-open-bg:#3a2c10; --st-open-fg:#eec27f;
+      --st-closed-bg:#173a20; --st-closed-fg:#8fdb9c;
     }
   }
-  :root[data-theme="dark"] {
-    --bg: #171510;
-    --surface: #211E17;
-    --surface-2: #2A261D;
-    --border: #3A352A;
-    --ink: #F2EEE4;
-    --ink-secondary: #C9C0AC;
-    --ink-muted: #948A75;
-    --accent: #E3A64C;
-    --accent-ink: #201804;
-    --accent-wash: #362B15;
-    --danger: #E08268;
-    --danger-wash: #3A231D;
-    --success: #7FC493;
-    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.35);
-    color-scheme: dark;
+  :root[data-theme="dark"]{
+    --bg:#19140f;
+    --surface:#221b14;
+    --surface-2:#2b2218;
+    --border:#3c2f21;
+    --text:#f2e9db;
+    --text-muted:#b3a28c;
+    --accent:#dba85a;
+    --accent-hover:#eabb73;
+    --accent-fg:#221a0f;
+    --accent-soft:#3a2c17;
+    --danger:#e08a6e;
+    --danger-soft:#3a2019;
+    --shadow:0 10px 30px -12px rgba(0,0,0,.5);
+    --st-ordered-bg:#1c2c3d; --st-ordered-fg:#9dc2ea;
+    --st-delivered-bg:#153229; --st-delivered-fg:#7fd3ba;
+    --st-open-bg:#3a2c10; --st-open-fg:#eec27f;
+    --st-closed-bg:#173a20; --st-closed-fg:#8fdb9c;
   }
 
-  * { box-sizing: border-box; }
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  .app{
+    font-family:var(--font-body);
+    direction:rtl;
+    max-width:1440px;
+    margin:0 auto;
+    padding:28px 20px 64px;
+    color:var(--text);
+  }
+  h1,h2{font-family:var(--font-display);font-weight:600;text-wrap:balance;margin:0;}
+  a{color:var(--accent);}
 
-  html, body { background: var(--bg); }
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    flex-wrap:wrap;margin-bottom:24px;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    font-size:30px;line-height:1;
+    width:52px;height:52px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--accent-soft);
+    box-shadow:inset 0 0 0 1px var(--border);
+  }
+  .brand-text h1{font-size:24px;}
+  .brand-text p{margin:2px 0 0;color:var(--text-muted);font-size:13.5px;}
 
-  body {
-    color: var(--ink);
-    font-family: 'Heebo', -apple-system, 'Segoe UI', Arial, sans-serif;
-    direction: rtl;
-    padding-inline: 20px;
-    padding-block: 24px 48px;
-    max-width: 1320px;
-    margin: 0 auto;
+  .btn{
+    font-family:var(--font-body);font-size:14.5px;font-weight:600;
+    border-radius:10px;padding:10px 16px;border:1px solid transparent;
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
-
-  h1, h2, h3 { margin: 0; text-wrap: balance; }
-
-  .page-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 22px;
-  }
-  .page-head h1 {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .page-head .sub {
-    color: var(--ink-muted);
-    font-size: 13.5px;
-  }
-  .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .account-box {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12.5px;
-    color: var(--ink-muted);
-  }
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12.5px;
-    color: var(--ink-muted);
-    padding: 5px 10px;
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    background: var(--surface);
-  }
-  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-muted); }
-  .status-pill.live .dot { background: var(--success); }
-  .status-pill.err .dot { background: var(--danger); }
-
-  /* KPI row */
-  .kpis {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 22px;
-  }
-  .kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 20px;
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
-  }
-  .kpi::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    top: 0; bottom: 0;
-    width: 3px;
-    background: var(--accent);
-  }
-  .kpi .label {
-    font-size: 12.5px;
-    color: var(--ink-secondary);
-    font-weight: 500;
-    margin-bottom: 8px;
-  }
-  .kpi .value {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    font-variant-numeric: proportional-nums;
-  }
-  .kpi .note {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--ink-muted);
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent);color:var(--accent-fg);}
+  .btn-primary:hover{background:var(--accent-hover);}
+  .btn-ghost{background:transparent;border-color:var(--border);color:var(--text);}
+  .btn-ghost:hover{background:var(--surface-2);}
+  .icon{font-size:16px;font-weight:700;}
+  button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
   }
 
-  /* Filter bar */
-  .filters {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px 18px;
-    box-shadow: var(--shadow);
-    margin-bottom: 18px;
+  .banner{
+    background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger);
+    border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:18px;
   }
-  .filters-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .filters-head h2 { font-size: 14.5px; font-weight: 700; }
-  .filters-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-  }
-  .field label {
-    display: block;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--ink-secondary);
-    margin-bottom: 5px;
-  }
-  .field .range-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .field .range-row span { color: var(--ink-muted); font-size: 12px; }
-  input, select, textarea {
-    width: 100%;
-    font-family: inherit;
-    font-size: 13.5px;
-    color: var(--ink);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-  }
-  input:focus, select:focus, textarea:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  .btn {
-    font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--ink);
-    cursor: pointer;
-  }
-  .btn:hover { filter: brightness(0.97); }
-  .btn.primary {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: transparent;
-  }
-  .btn.ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--ink-secondary);
-  }
-  .btn.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
-  .btn.small { padding: 5px 9px; font-size: 12px; }
-  .btn:disabled { opacity: 0.5; cursor: default; }
-
-  .filters-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 12px;
-  }
-  .filters-actions .count {
-    font-size: 12.5px;
-    color: var(--ink-muted);
+  .banner.info{
+    background:var(--accent-soft);color:var(--accent-hover);border:1px solid var(--accent);
   }
 
-  /* Table section */
-  .table-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-    gap: 8px;
+  /* ---------- stats ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:12px;margin-bottom:26px;
   }
-  .table-head h2 { font-size: 14.5px; font-weight: 700; }
+  .stat-tile{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow);
+  }
+  .stat-tile .label{font-size:12.5px;color:var(--text-muted);margin-bottom:8px;}
+  .stat-tile .value{
+    font-family:var(--font-display);font-size:23px;font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat-tile.warn .value{color:var(--st-open-fg);}
+  .stat-tile.good .value{color:var(--st-closed-fg);}
 
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    overflow-x: auto;
+  /* ---------- panels ---------- */
+  .panel{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:20px 20px 8px;margin-bottom:22px;box-shadow:var(--shadow);
   }
-  table { border-collapse: collapse; width: 100%; min-width: 1080px; }
-  thead th {
-    text-align: right;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--ink-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    padding: 11px 12px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    background: var(--surface);
-    cursor: pointer;
-    user-select: none;
+  .panel-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin-bottom:14px;flex-wrap:wrap;
   }
-  thead th .arrow { color: var(--accent); margin-inline-start: 3px; }
-  tbody td {
-    padding: 10px 12px;
-    font-size: 13.5px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--surface-2); }
-  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.notes { color: var(--ink-secondary); max-width: 220px; }
-  td.actions { white-space: nowrap; }
-  .reason-pill {
-    display: inline-block;
-    font-size: 12px;
-    padding: 3px 9px;
-    border-radius: 100px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--ink-secondary);
-    white-space: nowrap;
-  }
-  .empty-state {
-    padding: 46px 20px;
-    text-align: center;
-    color: var(--ink-muted);
-    font-size: 14px;
-  }
-  .row-edit input, .row-edit select { min-width: 90px; }
+  .panel-head h2{font-size:18px;}
+  .muted{color:var(--text-muted);font-size:13px;}
 
-  /* Modal */
-  .modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(20,17,10,0.45);
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: 40px 16px;
-    overflow-y: auto;
-    z-index: 50;
+  .table-scroll{overflow-x:auto;padding-bottom:12px;}
+  table{border-collapse:collapse;width:100%;min-width:0;}
+  thead th{
+    text-align:right;font-size:12.5px;color:var(--text-muted);font-weight:600;
+    padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+    position:sticky;top:0;background:var(--surface);
   }
-  .modal {
-    background: var(--surface);
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    width: 100%;
-    max-width: 640px;
-    padding: 22px 24px;
+  .orders-table thead th[data-key]{cursor:pointer;user-select:none;}
+  .orders-table thead th[data-key]:hover{color:var(--text);}
+  .orders-table thead th.sorted-asc::after{content:" ▲";font-size:9px;}
+  .orders-table thead th.sorted-desc::after{content:" ▼";font-size:9px;}
+  tbody td{
+    padding:10px 10px;border-bottom:1px solid var(--border);font-size:13.5px;
+    vertical-align:top;
   }
-  .modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-  .modal .modal-sub { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 16px; }
-  .modal-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:var(--surface-2);}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.num.due{color:var(--st-open-fg);font-weight:600;}
+  .money-cell{font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.55;}
+  .money-cell .sub{color:var(--text-muted);font-size:11.5px;margin-top:0;}
+  .money-cell .sub.due{color:var(--st-open-fg);font-weight:600;}
+  .sub{color:var(--text-muted);font-size:11.5px;margin-top:2px;}
+  .tag-example{
+    margin-inline-start:6px;font-size:10.5px;border:1px dashed var(--text-muted);
+    color:var(--text-muted);border-radius:999px;padding:1px 7px;
   }
-  .modal-grid .full { grid-column: 1 / -1; }
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 18px;
+  .actions{white-space:nowrap;}
+  .icon-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    width:30px;height:30px;cursor:pointer;font-size:13px;margin-inline-start:4px;
+    color:var(--text);
   }
-  .field-err { color: var(--danger); font-size: 11.5px; margin-top: 4px; display: none; }
-  .field.has-err input, .field.has-err select { border-color: var(--danger); }
-  .field.has-err .field-err { display: block; }
-  .dup-note {
-    color: var(--accent);
-    font-size: 11.5px;
-    margin-top: 4px;
-    display: none;
-    line-height: 1.5;
-  }
-  .dup-note.show { display: block; }
+  .icon-btn:hover{background:var(--surface-2);}
+  .icon-btn.danger:hover{background:var(--danger-soft);border-color:var(--danger);color:var(--danger);}
+  .detail-row td{background:var(--surface-2);font-size:13px;color:var(--text-muted);}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 22px;}
+  .detail-grid b{color:var(--text);font-weight:600;}
 
-  .fab-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-
-  .scroll-top-btn {
-    position: fixed;
-    bottom: 26px;
-    left: 26px;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0;
-    box-shadow: var(--shadow);
-    z-index: 40;
+  .pill{
+    display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:600;
+    white-space:nowrap;
   }
-  .scroll-top-btn.show { display: flex; }
+  .st-ordered{background:var(--st-ordered-bg);color:var(--st-ordered-fg);}
+  .st-delivered{background:var(--st-delivered-bg);color:var(--st-delivered-fg);}
+  .st-open{background:var(--st-open-bg);color:var(--st-open-fg);}
+  .st-closed{background:var(--st-closed-bg);color:var(--st-closed-fg);}
 
-  /* dd/mm/yyyy date field wrapper */
-  .date-field{position:relative;display:inline-flex;align-items:center;gap:6px;width:100%;}
+  .empty-state{color:var(--text-muted);text-align:center;padding:26px 0;}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+  .toolbar input[type="search"], .toolbar select, .toolbar input[type="date"], .toolbar .date-display{
+    font-family:var(--font-body);font-size:13.5px;padding:9px 12px;
+    border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);
+  }
+  .toolbar input[type="search"]{flex:1 1 220px;min-width:180px;}
+  .date-range{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-muted);}
+  .date-range input[type="date"], .date-range .date-display{padding:8px 10px;font-size:13px;}
+  /* Native <input type="date"> always renders in the browser/OS locale's own date
+     order (often mm/dd/yyyy), regardless of this page's Hebrew lang/dir - there's no
+     supported way to force its internal formatting from the page. So each date field
+     is a small wrapper: a normal, freely-typeable dd/mm/yyyy text field, plus a small
+     calendar button that opens the real native date input's picker when clicked. The
+     native input itself stays in the DOM (kept to a 1x1px, invisible, unclickable
+     proxy) purely so all the existing value/change logic elsewhere in the code keeps
+     reading and writing it exactly as before. */
+  .date-field{position:relative;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;}
+  .field .date-field{display:flex;width:100%;}
   .date-field .date-native-proxy{
     position:absolute !important;left:0;top:0;
-    width:1px !important;height:1px !important;padding:0 !important;margin:0 !important;border:0 !important;
+    width:1px !important;height:1px !important;
+    padding:0 !important;margin:0 !important;border:0 !important;
     opacity:0 !important;pointer-events:none !important;
   }
-  .date-display{flex:1;}
+  .date-display{width:118px;}
+  .field .date-display{flex:1;min-width:0;}
   .date-pick-btn{
     flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--border);
-    background:var(--surface-2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0;
+    background:var(--surface);color:var(--text);cursor:pointer;font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;padding:0;
   }
+  .date-pick-btn:hover{background:var(--surface-2);}
+  .chip-group{display:flex;gap:6px;}
+  .chip{
+    font-family:var(--font-body);font-size:13px;padding:8px 14px;border-radius:999px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;
+  }
+  .chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-hover);font-weight:600;}
 
-  @media (max-width: 980px) {
-    .filters-grid { grid-template-columns: repeat(2, 1fr); }
-    .kpis { grid-template-columns: 1fr; }
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,14,6,.45);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 16px;overflow-y:auto;z-index:50;
   }
-  @media (max-width: 560px) {
-    .modal-grid { grid-template-columns: 1fr; }
-    body { padding-inline: 14px; }
+  .modal{
+    background:var(--surface);border-radius:16px;max-width:720px;width:100%;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.4);border:1px solid var(--border);
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--border);
+  }
+  .modal-head h2{font-size:19px;}
+  form{padding:18px 22px 22px;}
+  fieldset{border:none;padding:0;margin:0 0 18px;}
+  legend{
+    font-size:12.5px;font-weight:700;color:var(--accent-hover);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;padding:0;
+  }
+  .form-row{display:grid;gap:12px 14px;margin-bottom:14px;}
+  .form-row.cols-2{grid-template-columns:1fr 1fr;}
+  .form-row.cols-3{grid-template-columns:repeat(3,1fr);}
+  .form-row.cols-4{grid-template-columns:repeat(4,1fr);}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span-2{grid-column:1 / -1;}
+  .field label{font-size:12.5px;color:var(--text-muted);}
+  .field input, .field select{
+    font-family:var(--font-body);font-size:14px;padding:9px 11px;
+    border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);
+    width:100%;
+  }
+  .field .hint{font-size:11px;color:var(--text-muted);min-height:14px;}
+  .field .hint.warn{color:var(--danger);}
+  .hint-spacer{font-size:12.5px;line-height:1;visibility:hidden;}
+  .input-with-action{display:flex;align-items:center;gap:6px;}
+  .input-with-action input{flex:1;}
+  .field input.locked{background:var(--surface-2);color:var(--text-muted);cursor:not-allowed;}
+  .icon-btn{
+    flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text);cursor:pointer;font-size:15px;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .icon-btn:hover{background:var(--surface-2);}
+  #btnBackToTop{
+    position:fixed;left:22px;bottom:22px;width:46px;height:46px;border-radius:50%;
+    border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);
+    font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);
+    display:flex;align-items:center;justify-content:center;z-index:500;
+  }
+  #btnBackToTop:hover{background:var(--accent-hover);}
+  @media (max-width:640px){ #btnBackToTop{ left:14px;bottom:14px;width:42px;height:42px;font-size:18px; } }
+  .checkbox-label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text);cursor:pointer;}
+  .checkbox-label input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);flex:none;}
+  .modal-actions{display:flex;justify-content:flex-start;gap:10px;margin-top:6px;}
+
+  .arch-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+  .arch-summary-tile{background:var(--surface-2);border-radius:10px;padding:12px 14px;}
+  .arch-summary-tile .muted{font-size:12px;display:block;margin-bottom:4px;}
+  .arch-summary-value{font-family:var(--font-display);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .realizations-title{font-size:13.5px;color:var(--text-muted);margin:0 0 8px;font-weight:600;}
+  @media (max-width:640px){ .arch-summary{grid-template-columns:1fr;} }
+
+  .notify-cell{display:flex;flex-direction:row;gap:4px;}
+  .ntoggle{
+    font-family:var(--font-body);font-size:11.5px;font-weight:600;border-radius:6px;border:none;
+    width:28px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;padding:0;
+  }
+  .ntoggle.done{background:var(--st-closed-bg);color:var(--st-closed-fg);}
+  .ntoggle.pending{background:var(--st-open-bg);color:var(--st-open-fg);}
+
+  @media (max-width:640px){
+    .form-row.cols-2, .form-row.cols-3, .form-row.cols-4{grid-template-columns:1fr;}
+    table{min-width:600px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .btn, .icon-btn{transition:none;}
   }
 </style>
 </head>
 <body>
 
-  <!-- מסך כניסה - מוצג כל עוד אין התחברות פעילה -->
-  <div class="modal-backdrop" id="msGateOverlay" style="display:none;">
-    <div class="modal">
-      <h2>התחברות נדרשת</h2>
-      <p style="font-size:13.5px; color:var(--ink-secondary); margin: 10px 0 0;">יש להתחבר עם חשבון Microsoft של הארגון (תומס תאורה) כדי לראות ולערוך את נתוני ההחזרים המשותפים.</p>
-      <div class="modal-actions">
-        <button class="btn primary" id="btnSignIn" type="button">התחברות עם Microsoft</button>
+
+<div class="app" dir="rtl" lang="he">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">💡</span>
+      <div class="brand-text">
+        <h1>מעקב עמלות אדריכלים</h1>
+        <p>תומס תאורה · הזמנות, תשלומים ועמלות לפי מצב טיפול</p>
       </div>
-      <div id="msGateError" style="color:var(--danger); margin-top:10px; font-size:12.5px;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div id="msAccountBox" hidden style="display:flex;align-items:center;gap:8px;">
+        <span class="muted" id="msAccountLabel" style="font-size:12.5px;"></span>
+        <button type="button" class="btn btn-ghost" id="btnMsSignOut" style="padding:6px 12px;font-size:12.5px;">התנתקות</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnNew"><span class="icon">+</span> הזמנה חדשה</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>לפי אדריכל</h2>
+      <span class="muted" id="architectCount"></span>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="architectSearch" placeholder="חיפוש לפי שם אדריכל או אופן מימוש…" />
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>אדריכל</th>
+            <th>מס׳ הזמנות</th>
+            <th>סה״כ מכירות</th>
+            <th>עמלה לתשלום</th>
+            <th>שולם</th>
+            <th>יתרה</th>
+            <th>תקציב שיווק</th>
+            <th>שיווק שמומש</th>
+            <th>יתרה למימוש</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="architectBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>הזמנות</h2>
+      <button type="button" class="btn btn-ghost" id="btnExportExcel">⇩ ייצוא לאקסל</button>
+      <button type="button" class="btn btn-ghost" id="btnClearExamples" hidden>נקה נתוני דוגמה</button>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="חיפוש לפי לקוח, אדריכל, מספר הזמנה…" />
+      <select id="filterArchitect"><option value="all">כל האדריכלים</option></select>
+      <div class="date-range">
+        <label for="filterDateFrom">מתאריך</label>
+        <input type="date" id="filterDateFrom">
+        <label for="filterDateTo">עד תאריך</label>
+        <input type="date" id="filterDateTo">
+      </div>
+      <select id="filterOrderStatus">
+        <option value="all">כל סטטוס ההזמנה</option>
+        <option value="הזמנה">הוזמן</option>
+        <option value="סופק">סופק</option>
+      </select>
+      <div class="chip-group" id="chipHandling">
+        <button type="button" class="chip active" data-value="all">הכל</button>
+        <button type="button" class="chip" data-value="פתוח">פתוח</button>
+        <button type="button" class="chip" data-value="סגור">סגור</button>
+      </div>
+      <select id="filterProcessState">
+        <option value="all">כל מצבי התהליך</option>
+        <option value="quote-no-order">יש הצעת מחיר ללא הזמנה</option>
+        <option value="delivered-unpaid-customer">סופק, אך לא שולם במלואו ע״י הלקוח</option>
+        <option value="delivered-unpaid-architect">סופק, אך העמלה לא שולמה במלואה לאדריכל</option>
+        <option value="closed-with-balance">טיפול סגור עם יתרה לתשלום לאדריכל</option>
+      </select>
+      <select id="filterNotifyStatus">
+        <option value="all">כל סטטוס ההודעות</option>
+        <option value="missing-any">חסרה הודעה כלשהי</option>
+        <option value="missing-quote">חסרה הודעת הצעת מחיר</option>
+        <option value="missing-order">חסרה הודעת הזמנה</option>
+        <option value="missing-benefit">חסרה הודעת הטבה</option>
+        <option value="all-done">כל ההודעות בוצעו</option>
+      </select>
+    </div>
+    <div class="table-scroll">
+      <table class="orders-table" id="ordersTable">
+        <thead>
+          <tr>
+            <th data-key="date">תאריך</th>
+            <th data-key="customerName">לקוח</th>
+            <th data-key="architectName">אדריכל</th>
+            <th data-key="orderNumber">מס׳ הזמנה</th>
+            <th>סטטוס הזמנה</th>
+            <th>הודעות</th>
+            <th data-key="orderAmount">נתוני הזמנה</th>
+            <th data-key="balance">עמלת אדריכל</th>
+            <th>טיפול</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+    <p class="empty-state" id="emptyState" hidden>לא נמצאו הזמנות התואמות את הסינון.</p>
+    <p class="muted" id="syncNote" style="padding:0 2px 14px;"></p>
+  </section>
+
+  <datalist id="architectNames"></datalist>
+  <datalist id="customerNames"></datalist>
+
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">הזמנה חדשה</h2>
+        <button type="button" class="icon-btn" id="btnCloseModal" aria-label="סגור">✕</button>
+      </div>
+      <form id="orderForm">
+        <fieldset>
+          <legend>פרטי ההזמנה והתשלומים</legend>
+
+          <div class="form-row cols-3">
+            <div class="field"><label for="f-date">תאריך</label><input type="date" id="f-date" name="date" required></div>
+            <div class="field"><label for="f-orderAmount">סכום הזמנה (₪)</label><input type="number" step="0.01" min="0" id="f-orderAmount" name="orderAmount" required></div>
+            <div class="field">
+              <label for="f-orderStatus">סטטוס הזמנה</label>
+              <select id="f-orderStatus" name="orderStatus">
+                <option value="הזמנה">הוזמן</option>
+                <option value="סופק">סופק</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row cols-4">
+            <div class="field"><label for="f-customerNumber">מספר לקוח</label><input type="text" id="f-customerNumber" name="customerNumber"></div>
+            <div class="field"><label for="f-customerName">שם לקוח</label><input type="text" id="f-customerName" name="customerName" list="customerNames" autocomplete="off" required></div>
+            <div class="field">
+              <label for="f-architectNumber">מספר אדריכל</label>
+              <div class="input-with-action">
+                <input type="text" id="f-architectNumber" name="architectNumber">
+                <button type="button" class="icon-btn" id="btnUnlockArchNumber" title="עריכה ידנית של הקוד" hidden>🔓</button>
+              </div>
+              <span class="hint" id="archNumberHint"></span>
+            </div>
+            <div class="field"><label for="f-architectName">שם אדריכל</label><input type="text" id="f-architectName" name="architectName" list="architectNames" autocomplete="off" required></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field"><label for="f-quoteNumber">מספר הצעת מחיר</label><input type="text" id="f-quoteNumber" name="quoteNumber"></div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-quoteNotified" name="quoteNotified"><span>נמסרה הודעה על הצעת המחיר</span></label>
+            </div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-orderNumber">מספר הזמנה</label>
+              <input type="text" id="f-orderNumber" name="orderNumber">
+              <span class="hint" id="orderNumberHint"></span>
+            </div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-orderNotified" name="orderNotified"><span>נמסרה הודעה על ההזמנה</span></label>
+            </div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field"><label for="f-paidByCustomer">שולם ע״י הלקוח (₪)</label><input type="number" step="0.01" min="0" id="f-paidByCustomer" name="paidByCustomer"></div>
+            <div class="field"><label for="f-customerCredits">זיכויים והחזרים ללקוח (₪)</label><input type="number" step="0.01" min="0" id="f-customerCredits" name="customerCredits"></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-bonusBudget">עמלת אדריכל (₪)</label>
+              <input type="number" step="0.01" min="0" id="f-bonusBudget" name="bonusBudget">
+              <span class="hint">מחושב אוטומטית כ-10% מסכום ההזמנה — ניתן לעדכן ידנית</span>
+            </div>
+            <div class="field"><label for="f-paidToArchitect">שולם לאדריכל (₪)</label><input type="number" step="0.01" min="0" id="f-paidToArchitect" name="paidToArchitect"></div>
+          </div>
+
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-marketingBudget">תקציב שיווק לאדריכל (₪)</label>
+              <input type="number" step="0.01" id="f-marketingBudget" name="marketingBudget">
+              <span class="hint">מחושב אוטומטית: 2% מסכום ההזמנה, בניכוי 10% מסכום הזיכויים והחזרי הלקוחות — ניתן לעדכן ידנית</span>
+            </div>
+            <div class="field checkbox-field">
+              <span class="hint-spacer" aria-hidden="true">&nbsp;</span>
+              <label class="checkbox-label"><input type="checkbox" id="f-benefitNotified" name="benefitNotified"><span>נמסרה הודעה על ההטבה</span></label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>טיפול</legend>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label for="f-handlingStatus">סטטוס טיפול</label>
+              <select id="f-handlingStatus" name="handlingStatus">
+                <option value="פתוח">פתוח</option>
+                <option value="סגור">סגור</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">שמירה</button>
+          <button type="button" class="btn btn-ghost" id="btnCancel">ביטול</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <div class="page-head">
-    <div>
-      <h1>מעקב החזרי לקוחות</h1>
-      <div class="sub">תומס תאורה &middot; מערכת מרכזית לרישום ומעקב אחר החזרים כספיים ללקוחות</div>
-    </div>
-    <div class="head-right">
-      <span id="msAccountBox" class="account-box" hidden>
-        <span id="msAccountLabel"></span>
-        <button class="btn ghost small" id="btnSignOut" type="button">התנתקות</button>
-      </span>
-      <div id="statusPill" class="status-pill"><span class="dot"></span><span id="statusText">מתחבר…</span></div>
+  <div class="modal-overlay" id="architectModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="architectModalTitle">
+      <div class="modal-head">
+        <h2 id="architectModalTitle">תקציב שיווק לאדריכל</h2>
+        <button type="button" class="icon-btn" id="btnCloseArchitectModal" aria-label="סגור">✕</button>
+      </div>
+      <div style="padding:18px 22px 22px;">
+        <p class="muted" style="margin:0 0 14px;">תקציב השיווק (2% מכל הזמנה) נצבר במצטבר מכלל ההזמנות של האדריכל. רשמו כאן כל מימוש בפועל של התקציב הזה — הסכום והדרך שבה נוצל.</p>
+        <div class="arch-summary">
+          <div class="arch-summary-tile"><span class="muted">תקציב שיווק שנצבר</span><div class="arch-summary-value" id="archSummaryEarned">—</div></div>
+          <div class="arch-summary-tile"><span class="muted">מומש עד כה</span><div class="arch-summary-value" id="archSummaryUsed">—</div></div>
+          <div class="arch-summary-tile"><span class="muted">יתרה למימוש</span><div class="arch-summary-value" id="archSummaryRemaining">—</div></div>
+        </div>
+
+        <h3 class="realizations-title">מימושים שנרשמו</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>סכום</th><th>אופן מימוש</th><th></th></tr></thead>
+            <tbody id="realizationsBody"></tbody>
+          </table>
+        </div>
+
+        <form id="realizationForm" class="form-row cols-2" style="margin-top:16px;">
+          <div class="field"><label for="f-realizationAmount">סכום מימוש (₪)</label><input type="number" step="0.01" min="0" id="f-realizationAmount" required></div>
+          <div class="field"><label for="f-realizationMethod">אופן מימוש</label><input type="text" id="f-realizationMethod" list="realizationMethods" placeholder="לדוגמה: יום צילום, יום כיף, בונוס" required></div>
+          <div class="field span-2"><button type="submit" class="btn btn-primary">הוספת מימוש</button></div>
+        </form>
+      </div>
     </div>
   </div>
 
-  <div class="kpis">
-    <div class="kpi">
-      <div class="label">סה"כ החזרים שנרשמו</div>
-      <div class="value" id="kpiCount">–</div>
-      <div class="note" id="kpiCountNote">&nbsp;</div>
-    </div>
-    <div class="kpi">
-      <div class="label">סה"כ סכום עסקאות</div>
-      <div class="value" id="kpiTxn">–</div>
-      <div class="note">&nbsp;</div>
-    </div>
-    <div class="kpi">
-      <div class="label">סה"כ סכום החזרים</div>
-      <div class="value" id="kpiRefund">–</div>
-      <div class="note" id="kpiRefundNote">&nbsp;</div>
-    </div>
-  </div>
+  <datalist id="realizationMethods"></datalist>
 
-  <div class="filters">
-    <div class="filters-head">
-      <h2>חיפוש וסינון</h2>
-      <button class="btn ghost small" id="clearFiltersBtn" type="button">נקה סינון</button>
-    </div>
-    <div class="filters-grid">
-      <div class="field">
-        <label for="fDateFrom">תאריך החזר &ndash; מ</label>
-        <div class="range-row">
-          <input type="date" id="fDateFrom">
+  <div class="modal-overlay" id="confirmOverlay" hidden>
+    <div class="modal" style="max-width:380px;">
+      <div style="padding:26px 24px;text-align:center;">
+        <p id="confirmMessage" style="margin:0 0 20px;font-size:14.5px;"></p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button type="button" class="btn btn-ghost" id="btnConfirmCancel">ביטול</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmOk" style="background:var(--danger);">אישור</button>
         </div>
       </div>
-      <div class="field">
-        <label for="fDateTo">תאריך החזר &ndash; עד</label>
-        <div class="range-row">
-          <input type="date" id="fDateTo">
-        </div>
-      </div>
-      <div class="field">
-        <label for="fCustomer">שם לקוח</label>
-        <input type="text" id="fCustomer" placeholder="חיפוש לפי שם לקוח…">
-      </div>
-      <div class="field">
-        <label for="fArchitect">שם אדריכל</label>
-        <select id="fArchitect"><option value="">הכל</option></select>
-      </div>
-      <div class="field">
-        <label for="fSalesperson">איש מכירות</label>
-        <select id="fSalesperson"><option value="">הכל</option></select>
-      </div>
-      <div class="field" style="grid-column: span 2;">
-        <label for="fReason">סיבת החזר</label>
-        <select id="fReason"><option value="">הכל</option></select>
-      </div>
-    </div>
-    <div class="filters-actions">
-      <div class="count" id="filterSummary">&nbsp;</div>
     </div>
   </div>
 
-  <div class="fab-row">
-    <button class="btn ghost" id="exportExcelBtn" type="button">⭳ ייצוא לאקסל</button>
-    <button class="btn primary" id="openAddBtn" type="button">+ הוספת החזר חדש</button>
+  <div class="modal-overlay" id="msGateOverlay" hidden>
+    <div class="modal" style="max-width:460px;">
+      <div style="padding:34px 26px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+        <h2 style="margin:0 0 10px;">התחברות לנתונים המשותפים</h2>
+        <p class="muted" style="margin:0 0 22px;">התחברו עם חשבון Microsoft הארגוני כדי לטעון ולשמור את הנתונים בקובץ ה-Excel המשותף ב-OneDrive.</p>
+        <button type="button" class="btn btn-primary" id="btnMsSignIn" style="width:100%;justify-content:center;margin-bottom:10px;">התחברות עם Microsoft</button>
+        <button type="button" class="btn btn-ghost" id="btnSkipSignIn" style="width:100%;justify-content:center;">המשך במצב תצוגה מקדימה מקומי</button>
+        <p class="hint warn" id="msGateError" style="margin-top:14px;"></p>
+      </div>
+    </div>
   </div>
+</div>
 
-  <div class="table-head">
-    <h2>רשומות החזר</h2>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="customerCode">מס' לקוח</th>
-          <th data-sort="customerName">שם לקוח</th>
-          <th data-sort="transactionAmount">סכום עסקה</th>
-          <th data-sort="salesperson">איש מכירות</th>
-          <th data-sort="refundDate">תאריך החזר</th>
-          <th data-sort="refundAmount">סכום להחזר</th>
-          <th data-sort="refundReason">סיבת החזר</th>
-          <th data-sort="architectName">שם אדריכל</th>
-          <th>הערות</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody">
-        <tr><td colspan="10"><div class="empty-state">טוען נתונים…</div></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div id="modalRoot"></div>
-
-  <button class="btn primary scroll-top-btn" id="scrollTopBtn" type="button" title="חזרה לראש הדף" aria-label="חזרה לראש הדף">↑</button>
+<button type="button" id="btnBackToTop" aria-label="חזרה לראש הדף" title="חזרה לראש הדף" hidden>↑</button>
 
 <script>
-(function () {
+(function(){
   "use strict";
+  const BONUS_RATE = 0.10;
+  const MARKETING_RATE = 0.02;
+  const CREDIT_CLAWBACK_RATE = 0.10;
 
-  // =====================================================================
-  // קבועים לפרויקט
-  // =====================================================================
-  var MSAL_CLIENT_ID = 'eb5a80f4-7d52-4a7a-8ea3-851b513ae5db';   // Application (client) ID מ-Entra
-  var MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';   // Directory (tenant) ID מ-Entra
-  var GRAPH_SCOPES = ['Files.ReadWrite', 'Sites.Read.All', 'Sites.ReadWrite.All', 'User.Read'];
+  const MSAL_CLIENT_ID = '05f020fc-091a-4ba3-9fc8-4c5a6a97a7b9';
+  const MSAL_TENANT_ID = '31eb33cf-bfa8-4368-996c-5c4d600cf835';
+  // Sites.Read.All resolves the workbook's location, but is read-only - it can't
+  // explain why writes into a SharePoint team site's document library keep failing
+  // with EditModeAccessDenied even for a user with real edit access. Sites.ReadWrite.All
+  // is the delegated permission that actually allows writing to a SharePoint site's
+  // drive (Files.ReadWrite alone only reliably covers the user's own OneDrive).
+  const GRAPH_SCOPES = ['Files.ReadWrite', 'Sites.Read.All', 'Sites.ReadWrite.All', 'User.Read'];
+  const EXCEL_FILE_NAME = 'בסיס נתונים - מעקב עמלות אדריכלים.xlsx';
+  // Direct sharing link to the workbook (copied from OneDrive/SharePoint's "Copy link").
+  // Resolving by this link works no matter which site or folder the file lives in -
+  // this file specifically lives in a SharePoint team site's document library, not
+  // in anyone's personal OneDrive, so a plain /me/drive path lookup can never find it.
+  const SHARE_URL = 'https://thomaslighting.sharepoint.com/:x:/r/sites/ThomasShareFolder/Shared%20Documents/%D7%9E%D7%A2%D7%A7%D7%91%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D/%D7%91%D7%A1%D7%99%D7%A1%20%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%20-%20%D7%9E%D7%A2%D7%A7%D7%91%20%D7%A2%D7%9E%D7%9C%D7%95%D7%AA%20%D7%90%D7%93%D7%A8%D7%99%D7%9B%D7%9C%D7%99%D7%9D.xlsx?d=w5ae671be47bd48bc8c612bda9d6c4ef0&csf=1&web=1&e=hVUwkQ';
+  // The SharePoint site/library/folder the workbook lives in, used as a more direct
+  // lookup than the share link above: resolving through the link can bind the Excel
+  // editing session to the LINK's own permission level (often view-only by default)
+  // instead of the signed-in user's real, broader permission on the site - which is
+  // exactly what produced "EditModeAccessDenied" on every write even though the user
+  // has genuine edit access. Going through the site + drive path uses the user's own
+  // delegated permission instead.
+  const SP_HOSTNAME = 'thomaslighting.sharepoint.com';
+  const SP_SITE_PATH = '/sites/ThomasShareFolder';
+  const SP_FILE_PATH = 'מעקב אדריכלים/' + EXCEL_FILE_NAME; // relative to the site's default document library root
+  const GRAPH_FILE_ID_KEY = 'architect-graph-file-id-v2'; // v2: bumped so old cached lookups (from the share-link method) don't skip the new site-path resolution
+  const ORDERS_TABLE = 'Orders';
+  const REALIZATIONS_TABLE = 'Realizations';
+  const ORDERS_COLUMNS = ['id','date','customerNumber','customerName','architectName','architectNumber','quoteNumber','quoteNotified','orderNumber','orderAmount','orderNotified','orderStatus','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect','benefitNotified','handlingStatus'];
+  const REALIZATION_COLUMNS = ['id','key','name','number','date','amount','method'];
+  const BOOL_ORDER_FIELDS = new Set(['quoteNotified','orderNotified','benefitNotified']);
+  const NUM_ORDER_FIELDS = new Set(['orderAmount','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect']);
 
-  var EXCEL_FILE_NAME = 'refunds-database.xlsx';
-  var SHARE_URL = 'https://thomaslighting.sharepoint.com/:x:/s/ThomasShareFolder/IQDqNdjMGKkjQqBr_zfRJ7dHAdCu2VIkIuRTuV-LSDiqOlY?e=uFxjRl'; // קישור שיתוף (Copy link) של הקובץ - גיבוי לאיתור
+  let msalInstance = null;
+  let graphAvailable = false;
+  let graphAccessToken = null;
+  let graphFileId = null;
+  let graphDriveId = null; // set when the workbook lives in a SharePoint site's drive, not the user's own OneDrive
+  let graphPollTimer = null;
 
-  var SP_HOSTNAME = 'thomaslighting.sharepoint.com';
-  var SP_SITE_PATH = '/sites/ThomasShareFolder';
-  var SP_FILE_PATH = 'מעקב אדריכלים/מעקב החזרי לקוחות/' + EXCEL_FILE_NAME;
-  var GRAPH_FILE_ID_KEY = 'thomas-refunds-graph-file-id-v1';   // מזהה קאש ייחודי לפרויקט הזה
+  let db = null;
+  let dbAvailable = false;
+  let orders = [];
+  let architectMeta = {};
+  let editingId = null;
+  let bonusManuallyEdited = false;
+  let marketingManuallyEdited = false;
+  let expandedIds = new Set();
+  let currentArchModalKey = null;
+  let currentArchModalName = '';
+  let currentArchModalNumber = '';
 
-  var REFUNDS_TABLE = 'Refunds';
-  var REFUNDS_COLUMNS = ['id', 'customerCode', 'customerName', 'transactionAmount', 'salesperson',
-                          'refundDate', 'refundAmount', 'refundReason', 'architectName', 'notes'];
+  let filterText = '';
+  let filterHandling = 'all';
+  let filterOrderStatus = 'all';
+  let filterArchitect = 'all';
+  let filterProcessState = 'all';
+  let filterNotifyStatus = 'all';
+  let filterDateFrom = '';
+  let filterDateTo = '';
+  let architectSearchText = '';
+  let sortKey = 'date';
+  let sortDir = 'desc';
 
-  var msalInstance = null;
-  var graphAvailable = false;
-  var graphAccessToken = null;
-  var graphFileId = null;
-  var graphDriveId = null;
-  var graphSessionId = null;
-  var graphPollTimer = null;
-
-  // =====================================================================
-  // State ו-UI helpers
-  // =====================================================================
-  var state = {
-    records: [],
-    dataReady: false,
-    sortField: "refundDate",
-    sortDir: "desc",
-    editingId: null,
-    deletingId: null,
-    filters: { dateFrom: "", dateTo: "", customer: "", architect: "", salesperson: "", reason: "" }
-  };
-
-  var REASON_SUGGESTIONS_ID = "reasonOptionsList";
-  var ARCHITECT_SUGGESTIONS_ID = "architectOptionsList";
-  var SALES_SUGGESTIONS_ID = "salesOptionsList";
-
-  function fmtCurrency(v) {
-    if (v === null || v === undefined || v === "" || isNaN(v)) return "—";
-    try {
-      return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(v);
-    } catch (e) { return "₪" + v; }
+  function num(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+  function esc(s){
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-  function fmtDate(iso) {
-    if (!iso) return "—";
-    var parts = String(iso).split("-");
-    if (parts.length !== 3) return iso;
-    return parts[2] + "." + parts[1] + "." + parts[0];
+  const moneyFmt = new Intl.NumberFormat('he-IL', {style:'currency', currency:'ILS', maximumFractionDigits:0});
+  function fmtMoney(v){ return moneyFmt.format(num(v)); }
+  function fmtDate(iso){
+    if(!iso) return '—';
+    const parts = String(iso).split('-');
+    if(parts.length!==3) return esc(iso);
+    const [y,m,d] = parts;
+    return `${d}.${m}.${y}`;
   }
-  function esc(s) {
-    if (s === null || s === undefined) return "";
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  function archKey(name, number){ return (name||'—') + '||' + (number||''); }
+
+  let architectNumberUnlocked = true;
+
+  // Builds a {byName, byNumber} lookup from the existing orders, for a given pair of
+  // fields (e.g. architectName/architectNumber, or customerName/customerNumber) - used
+  // to recognize a previously-seen architect or customer and auto-fill their other
+  // field instead of making the person retype it every time.
+  function buildPersonDirectory(nameKey, numberKey){
+    const byName = new Map();
+    const byNumber = new Map();
+    orders.forEach(o=>{
+      const name = (o[nameKey]||'').trim();
+      const number = (o[numberKey]||'').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (number && (!byName.has(key) || !byName.get(key).number)) byName.set(key, {name, number});
+      else if (!byName.has(key)) byName.set(key, {name, number});
+      if (number && !byNumber.has(number)) byNumber.set(number, name);
+    });
+    return { byName, byNumber };
+  }
+  function getArchitectDirectory(){ return buildPersonDirectory('architectName','architectNumber'); }
+  function getCustomerDirectory(){ return buildPersonDirectory('customerName','customerNumber'); }
+
+  function applyArchitectLock(matchedNumber){
+    const input = document.getElementById('f-architectNumber');
+    const hint = document.getElementById('archNumberHint');
+    const btn = document.getElementById('btnUnlockArchNumber');
+    if (matchedNumber){
+      input.value = matchedNumber;
+      input.readOnly = true;
+      input.classList.add('locked');
+      hint.textContent = 'קוד אדריכל קיים – ננעל אוטומטית לפי השם. לעריכה ידנית לחץ על כפתור הנעילה.';
+      hint.classList.remove('warn');
+      btn.hidden = false;
+      architectNumberUnlocked = false;
+    } else {
+      input.readOnly = false;
+      input.classList.remove('locked');
+      btn.hidden = true;
+      architectNumberUnlocked = true;
+      hint.textContent = '';
+      hint.classList.remove('warn');
+    }
+  }
+
+  function handleArchitectNameInput(){
+    const nameInput = document.getElementById('f-architectName');
+    const name = nameInput.value.trim().toLowerCase();
+    if (!name){ applyArchitectLock(null); return; }
+    const dir = getArchitectDirectory();
+    const match = dir.byName.get(name);
+    if (match && match.number) applyArchitectLock(match.number);
+    else applyArchitectLock(null);
+  }
+
+  function handleArchitectNumberInput(){
+    if (!architectNumberUnlocked) return;
+    const hint = document.getElementById('archNumberHint');
+    const numberInput = document.getElementById('f-architectNumber');
+    const nameInput = document.getElementById('f-architectName');
+    const number = numberInput.value.trim();
+    const currentName = nameInput.value.trim();
+    if (!number){ hint.textContent=''; hint.classList.remove('warn'); return; }
+    const dir = getArchitectDirectory();
+    const existingName = dir.byNumber.get(number);
+    if (existingName && !currentName){
+      // Recognized architect code with no name typed yet - fill the name in
+      // automatically instead of just warning that the code already exists.
+      nameInput.value = existingName;
+      applyArchitectLock(number);
+      return;
+    }
+    if (existingName && existingName.toLowerCase() !== currentName.toLowerCase()){
+      hint.textContent = `שים לב: קוד זה כבר שייך לאדריכל "${existingName}" – ייתכן שמדובר באדריכל כפול.`;
+      hint.classList.add('warn');
+    } else {
+      hint.textContent = '';
+      hint.classList.remove('warn');
+    }
+  }
+
+  // Customer auto-fill: recognizes a customer number or name already used in a
+  // previous order and fills in the matching counterpart, the same way the architect
+  // fields above do - but without the architect fields' "lock" behavior, since a
+  // customer number here is just a convenience lookup, not a de-duplication key.
+  function handleCustomerNumberInput(){
+    const numberInput = document.getElementById('f-customerNumber');
+    const nameInput = document.getElementById('f-customerName');
+    const number = numberInput.value.trim();
+    if (!number || nameInput.value.trim()) return;
+    const existingName = getCustomerDirectory().byNumber.get(number);
+    if (existingName) nameInput.value = existingName;
+  }
+  function handleCustomerNameInput(){
+    const nameInput = document.getElementById('f-customerName');
+    const numberInput = document.getElementById('f-customerNumber');
+    const name = nameInput.value.trim().toLowerCase();
+    if (!name || numberInput.value.trim()) return;
+    const match = getCustomerDirectory().byName.get(name);
+    if (match && match.number) numberInput.value = match.number;
+  }
+
+  // Live duplicate-order-number check, as the number is typed - rather than only
+  // finding out after pressing "save" (the save handler below still double-checks,
+  // as a safety net for anyone who ignores or doesn't notice this hint).
+  function handleOrderNumberInput(){
+    const hint = document.getElementById('orderNumberHint');
+    const number = document.getElementById('f-orderNumber').value.trim();
+    if (!number){ hint.textContent=''; hint.classList.remove('warn'); return; }
+    const dup = orders.find(o => o.id!==editingId && String(o.orderNumber||'').trim() === number);
+    if (dup){
+      hint.textContent = `שימו לב: הזמנה מספר "${number}" כבר קיימת (לקוח: ${dup.customerName||'—'}, תאריך: ${fmtDate(dup.date)}).`;
+      hint.classList.add('warn');
+    } else {
+      hint.textContent = '';
+      hint.classList.remove('warn');
+    }
+  }
+  function archDocId(key){
+    let h = 0;
+    for (let i=0;i<key.length;i++){ h = (h*31 + key.charCodeAt(i)) >>> 0; }
+    return 'a' + h.toString(36);
+  }
+
+  // ---------- Excel row <-> object mapping ----------
+  // Excel stores a date-formatted cell internally as a plain serial number (days
+  // since 1899-12-30) - if the "date" column in the workbook ever gets auto-detected
+  // or formatted as a Date cell (easy to happen by accident when typing values
+  // straight into Excel), Microsoft Graph's table-rows API returns that raw serial
+  // number instead of a readable string, which is why a date could show up in the
+  // app as something like "46308" instead of a real date. This converts it back.
+  function excelSerialToIso(serial){
+    const n = Number(serial);
+    if (!isFinite(n)) return '';
+    const ms = Math.round((n - 25569) * 86400000); // 25569 = Excel serial for 1970-01-01
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  }
+  function orderToRow(o){
+    return ORDERS_COLUMNS.map(k=>{
+      if (BOOL_ORDER_FIELDS.has(k)) return !!o[k];
+      if (NUM_ORDER_FIELDS.has(k)) return num(o[k]);
+      return o[k] != null ? String(o[k]) : '';
     });
   }
-
-  function setStatus(kind, text) {
-    var pill = document.getElementById("statusPill");
-    pill.className = "status-pill" + (kind ? " " + kind : "");
-    document.getElementById("statusText").textContent = text;
-  }
-
-  // =====================================================================
-  // מיפוי אובייקט ⇄ שורת Excel (לפי סדר REFUNDS_COLUMNS)
-  // =====================================================================
-  function toNumOrNull(v) {
-    if (v === null || v === undefined || v === "") return null;
-    var n = Number(v);
-    return isNaN(n) ? null : n;
-  }
-  function toStr(v) { return (v === null || v === undefined) ? "" : String(v); }
-
-  // תאריך החזר אמור להיות מאוחסן כטקסט (yyyy-mm-dd) בטבלה, אבל אקסל לפעמים "מזהה" אוטומטית
-  // ערך שהוזן מהאפליקציה (למשל דרך הוספת רשומה חדשה) כתאריך אמיתי, והופך אותו למספר סידורי
-  // (Excel serial date) במקום להשאיר אותו כמחרוזת. כדי שזה תמיד יוצג נכון בטבלה, ממירים כל
-  // ערך מספרי כזה בחזרה לתאריך ISO (yyyy-mm-dd) בעת הקריאה.
-  function excelSerialToIso(serial) {
-    var utcDays = Math.floor(serial - 25569); // 25569 = ההפרש בימים בין 1899-12-30 (אפס של אקסל) ל-1970-01-01
-    var utcMs = utcDays * 86400 * 1000;
-    var d = new Date(utcMs);
-    var y = d.getUTCFullYear();
-    var m = String(d.getUTCMonth() + 1).padStart(2, "0");
-    var day = String(d.getUTCDate()).padStart(2, "0");
-    return y + "-" + m + "-" + day;
-  }
-  function toIsoDate(v) {
-    if (v === null || v === undefined || v === "") return "";
-    if (typeof v === "number") return excelSerialToIso(v);
-    var s = String(v).trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    if (/^\d+(\.\d+)?$/.test(s)) return excelSerialToIso(parseFloat(s));
-    return s;
-  }
-
-  function rowToObj(vals) {
-    var o = {};
-    REFUNDS_COLUMNS.forEach(function (k, i) { o[k] = vals[i]; });
-    return {
-      id: toStr(o.id),
-      customerCode: toStr(o.customerCode),
-      customerName: toStr(o.customerName),
-      transactionAmount: toNumOrNull(o.transactionAmount),
-      salesperson: toStr(o.salesperson),
-      refundDate: toIsoDate(o.refundDate),
-      refundAmount: toNumOrNull(o.refundAmount),
-      refundReason: toStr(o.refundReason),
-      architectName: toStr(o.architectName),
-      notes: toStr(o.notes)
-    };
-  }
-  function objToRow(o) {
-    return REFUNDS_COLUMNS.map(function (k) {
-      var v = o[k];
-      if (v === null || v === undefined) return "";
-      return v;
+  function rowToOrder(vals){
+    const o = {};
+    ORDERS_COLUMNS.forEach((k,i)=>{
+      const v = vals[i];
+      if (BOOL_ORDER_FIELDS.has(k)) o[k] = (v===true || v==='TRUE' || v===1 || v==='1');
+      else if (NUM_ORDER_FIELDS.has(k)) o[k] = num(v);
+      else if (k==='date' && typeof v === 'number') o[k] = excelSerialToIso(v);
+      else o[k] = v != null ? String(v) : '';
     });
+    return o;
+  }
+  function realizationToRow(r){
+    return REALIZATION_COLUMNS.map(k=> k==='amount' ? num(r[k]) : (r[k] != null ? String(r[k]) : ''));
+  }
+  function rowToRealization(vals){
+    const r = {};
+    REALIZATION_COLUMNS.forEach((k,i)=>{
+      const v = vals[i];
+      if (k==='amount') r[k] = num(v);
+      else if (k==='date' && typeof v === 'number') r[k] = excelSerialToIso(v);
+      else r[k] = v != null ? String(v) : '';
+    });
+    return r;
   }
 
-  // =====================================================================
-  // MSAL - התחברות (redirect, לא popup - ראו טבלת תקלות ידועות)
-  // =====================================================================
-  async function initMsal() {
+  // ---------- Microsoft sign-in (MSAL) ----------
+  async function initMsal(){
     if (!window.msal) return false;
-    try {
+    try{
       msalInstance = new msal.PublicClientApplication({
         auth: {
           clientId: MSAL_CLIENT_ID,
@@ -662,779 +880,1225 @@
         cache: { cacheLocation: 'localStorage' }
       });
       await msalInstance.initialize();
-      try {
-        var response = await msalInstance.handleRedirectPromise();
-        if (response && response.accessToken) {
+      // Using a full-page redirect (not a popup): Microsoft's login pages send
+      // COOP headers that sever the popup<->opener link in modern browsers, which
+      // left loginPopup() hanging forever after a successful sign-in. A redirect
+      // navigates this same tab away and back, so handleRedirectPromise() below
+      // picks the result up directly on the way back - no cross-window messaging.
+      try{
+        const response = await msalInstance.handleRedirectPromise();
+        if (response && response.accessToken){
           graphAccessToken = response.accessToken;
           await activateGraphMode(response.account);
         }
-      } catch (e) { console.error('redirect handling error', e); }
+      } catch(e){ console.error('redirect handling error', e); }
       return true;
-    } catch (e) { console.error('msal init error', e); return false; }
+    } catch(e){ console.error('msal init error', e); return false; }
   }
 
-  async function acquireGraphTokenSilent() {
-    var accounts = msalInstance.getAllAccounts();
+  async function acquireGraphTokenSilent(){
+    const accounts = msalInstance.getAllAccounts();
     if (!accounts.length) return null;
-    try { return await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: accounts[0] }); }
-    catch (e) { return null; }
+    try{
+      return await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: accounts[0] });
+    } catch(e){ return null; }
   }
 
-  async function signInWithMicrosoft() {
-    try {
-      Object.keys(sessionStorage).forEach(function (k) {
+  async function signInWithMicrosoft(){
+    const errEl = document.getElementById('msGateError');
+    errEl.textContent = '';
+    // A previous attempt that failed mid-flight (e.g. block_nested_popups) can leave
+    // MSAL's "interaction in progress" flag stuck in sessionStorage, blocking every
+    // later attempt with interaction_in_progress. Clear it before starting a fresh one.
+    try{
+      Object.keys(sessionStorage).forEach(function(k){
         if (k.indexOf('interaction.status') !== -1) sessionStorage.removeItem(k);
       });
-    } catch (e) {}
-    try {
-      await msalInstance.loginRedirect({ scopes: GRAPH_SCOPES }); // מנווט את הטאב - שום דבר אחרי זה לא ירוץ
-    } catch (e) {
-      document.getElementById('msGateError').textContent = 'ההתחברות נכשלה: ' + (e && e.message ? e.message : e);
+    } catch(e){ /* ignore */ }
+    try{
+      // Full-page redirect: navigates this tab away, so nothing after this line runs.
+      // The result is picked up in initMsal() -> handleRedirectPromise() once Microsoft
+      // sends the browser back here.
+      await msalInstance.loginRedirect({ scopes: GRAPH_SCOPES });
+    } catch(e){
+      console.error('sign-in failed', e);
+      const code = (e && (e.errorCode || e.name)) || '';
+      const msg = (e && e.message) || String(e);
+      errEl.textContent = 'ההתחברות נכשלה' + (code ? (' [' + code + ']') : '') + ': ' + msg;
     }
   }
 
-  async function signOutMicrosoft() {
+  async function signOutMicrosoft(){
     if (graphPollTimer) clearInterval(graphPollTimer);
-    try { localStorage.removeItem(GRAPH_FILE_ID_KEY); } catch (e) {}
-    try {
-      var accounts = msalInstance ? msalInstance.getAllAccounts() : [];
-      if (accounts.length) { await msalInstance.logoutRedirect({ account: accounts[0] }); return; }
-    } catch (e) {}
+    try{ localStorage.removeItem(GRAPH_FILE_ID_KEY); } catch(e){ /* ignore */ }
+    try{
+      const accounts = msalInstance ? msalInstance.getAllAccounts() : [];
+      if (accounts.length){
+        await msalInstance.logoutRedirect({ account: accounts[0] });
+        return; // navigates away
+      }
+    } catch(e){ console.error('sign-out error', e); }
     location.reload();
   }
 
-  async function init() {
-    setStatus("", "מתחבר…");
-    var msalReady = await initMsal();
-    if (graphAvailable) return;
-    if (msalReady) {
-      var silent = await acquireGraphTokenSilent();
-      if (silent) { graphAccessToken = silent.accessToken; await activateGraphMode(silent.account); return; }
-      document.getElementById('msGateOverlay').style.display = 'flex';
-      setStatus("", "לא מחובר");
-      return;
-    }
-    setStatus("err", "שגיאה בטעינת ספריית ההתחברות");
+  // ---------- Microsoft Graph (Excel workbook) I/O ----------
+  let graphSessionId = null;
+
+  async function createWorkbookSession(){
+    // For a workbook that lives in a SharePoint document library (not the signed-in
+    // user's own OneDrive), Excel's "sessionless" API mode can silently fail to
+    // carry through the user's real edit permission - reads work, writes come back
+    // "EditModeAccessDenied" even for a genuine editor. Negotiating an explicit,
+    // persisted workbook session and sending it on every call avoids that.
+    try{
+      const res = await graphFetch(driveItemBase() + '/workbook/createSession', {
+        method: 'POST', body: JSON.stringify({ persistChanges: true })
+      });
+      return (res && res.id) || null;
+    } catch(e){ console.error('createSession failed', e); return null; }
   }
 
-  // =====================================================================
-  // Microsoft Graph - fetch, session (עם רענון אוטומטי אם פג תוקף), איתור הקובץ
-  // =====================================================================
-  async function graphFetch(path, options, _isRetry) {
+  async function graphFetch(path, options){
     options = options || {};
-    var headers = Object.assign({ 'Authorization': 'Bearer ' + graphAccessToken, 'Content-Type': 'application/json' }, options.headers || {});
-    var isWorkbookCall = path.indexOf('/workbook/') !== -1;
-    if (graphSessionId && isWorkbookCall) headers['workbook-session-id'] = graphSessionId;
-    var res = await fetch('https://graph.microsoft.com/v1.0' + path, Object.assign({}, options, { headers: headers }));
-    if (!res.ok) {
-      var text = await res.text().catch(function () { return ''; });
-      // חשוב: ה-session של ה-workbook (workbook-session-id) פג תוקף אחרי כמה דקות של חוסר שימוש,
-      // או אחרי זמן ארוך של פעילות. כשזה קורה, קריאות עם ה-session הישן נכשלות (לרוב 400/404/409).
-      // לכן - עבור קריאות /workbook/ בלבד, מנסים פעם אחת ליצור session חדש ולחזור על הקריאה,
-      // במקום פשוט להיכשל (זו הייתה הסיבה שעריכה/הוספה הפסיקו לעבוד אחרי כמה דקות שימוש).
-      if (isWorkbookCall && !_isRetry && (res.status === 400 || res.status === 404 || res.status === 409)) {
-        try {
-          var freshSession = await createWorkbookSession();
-          if (freshSession) {
-            graphSessionId = freshSession;
-            return await graphFetch(path, options, true);
-          }
-        } catch (eRefresh) { /* נופל למטה לזרוק את השגיאה המקורית */ }
-      }
+    const headers = Object.assign({ 'Authorization': 'Bearer ' + graphAccessToken, 'Content-Type': 'application/json' }, options.headers || {});
+    if (graphSessionId && path.indexOf('/workbook/') !== -1) headers['workbook-session-id'] = graphSessionId;
+    const res = await fetch('https://graph.microsoft.com/v1.0' + path, Object.assign({}, options, { headers }));
+    if (!res.ok){
+      const text = await res.text().catch(()=>'');
       throw new Error('Graph ' + res.status + ': ' + text);
     }
-    var text2 = await res.text().catch(function () { return ''; });
-    if (!text2) return null;
-    try { return JSON.parse(text2); } catch (e) { return null; }
+    // Some endpoints (e.g. deleting a table row) return 200/204 with an empty body,
+    // not necessarily 204 — parsing that as JSON would throw, so read as text first.
+    const text = await res.text().catch(()=>'');
+    if (!text) return null;
+    try{ return JSON.parse(text); } catch(e){ return null; }
   }
 
-  function encodeShareUrl(url) {
-    var b64 = btoa(unescape(encodeURIComponent(url)));
-    var b64url = b64.replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-');
+  function encodeShareUrl(url){
+    // Per Microsoft Graph's documented recipe for turning a sharing URL into a
+    // "shares" API token: base64-encode it, then make that URL-safe, then prefix "u!".
+    const b64 = btoa(unescape(encodeURIComponent(url)));
+    const b64url = b64.replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-');
     return 'u!' + b64url;
   }
 
-  function driveItemBase() {
+  function driveItemBase(){
     return (graphDriveId ? ('/drives/' + graphDriveId) : '/me/drive') + '/items/' + graphFileId;
   }
 
-  async function findWorkbookFile() {
-    var cachedRaw = localStorage.getItem(GRAPH_FILE_ID_KEY);
-    if (cachedRaw) {
-      try {
-        var cached = JSON.parse(cachedRaw);
-        if (cached && cached.id) { graphDriveId = cached.driveId || null; return cached.id; }
-      } catch (e) {}
+  async function findWorkbookFile(){
+    const cachedRaw = localStorage.getItem(GRAPH_FILE_ID_KEY);
+    if (cachedRaw){
+      try{
+        const cached = JSON.parse(cachedRaw);
+        if (cached && cached.id){ graphDriveId = cached.driveId || null; return cached.id; }
+      } catch(e){ /* older cache format - ignore and re-resolve below */ }
     }
-    try {
-      var site = await graphFetch('/sites/' + SP_HOSTNAME + ':' + SP_SITE_PATH);
-      if (site && site.id) {
-        var encodedFilePath = SP_FILE_PATH.split('/').map(encodeURIComponent).join('/');
-        var item = await graphFetch('/sites/' + site.id + '/drive/root:/' + encodedFilePath);
-        if (item && item.id && item.parentReference && item.parentReference.driveId) {
+    // Resolve via the SharePoint site's own drive + folder path first - this uses the
+    // signed-in user's real delegated permission on the site (edit or view, whichever
+    // they actually have), rather than a sharing link's own, possibly narrower,
+    // permission ceiling.
+    try{
+      const site = await graphFetch('/sites/' + SP_HOSTNAME + ':' + SP_SITE_PATH);
+      if (site && site.id){
+        const encodedFilePath = SP_FILE_PATH.split('/').map(encodeURIComponent).join('/');
+        const item = await graphFetch('/sites/' + site.id + '/drive/root:/' + encodedFilePath);
+        if (item && item.id && item.parentReference && item.parentReference.driveId){
           graphDriveId = item.parentReference.driveId;
           localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: graphDriveId }));
           return item.id;
         }
       }
-    } catch (e) { console.error('SharePoint site/path resolve failed', e); }
-    try {
-      var token = encodeShareUrl(SHARE_URL);
-      var item2 = await graphFetch('/shares/' + token + '/driveItem');
-      if (item2 && item2.id && item2.parentReference && item2.parentReference.driveId) {
-        graphDriveId = item2.parentReference.driveId;
-        localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item2.id, driveId: graphDriveId }));
-        return item2.id;
+    } catch(e){ console.error('SharePoint site/path resolve failed', e); }
+    // Resolve via the workbook's own sharing link as a fallback - works regardless of
+    // whether the file lives in someone's personal OneDrive or a SharePoint team
+    // site's document library, which a plain /me/drive path lookup can never reach.
+    try{
+      const token = encodeShareUrl(SHARE_URL);
+      const item = await graphFetch('/shares/' + token + '/driveItem');
+      if (item && item.id && item.parentReference && item.parentReference.driveId){
+        graphDriveId = item.parentReference.driveId;
+        localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: graphDriveId }));
+        return item.id;
       }
-    } catch (e) { console.error('share link resolve failed', e); }
-    throw new Error('workbook-not-found');
+    } catch(e){ console.error('share link resolve failed', e); }
+    // Fallbacks, for a file that instead lives directly in the signed-in user's own
+    // OneDrive: exact path lookup, then full-text search as a last resort.
+    try{
+      const encodedPath = EXCEL_FILE_NAME.split('/').map(encodeURIComponent).join('/');
+      const item = await graphFetch('/me/drive/root:/' + encodedPath);
+      if (item && item.id){
+        graphDriveId = null;
+        localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: item.id, driveId: null }));
+        return item.id;
+      }
+    } catch(e){ /* fall through to search below */ }
+    const q = encodeURIComponent(EXCEL_FILE_NAME.replace(/\.xlsx$/i, '').replace(/[-–—]/g, ' '));
+    const data = await graphFetch("/me/drive/root/search(q='" + q + "')");
+    const list = data.value || [];
+    const match = list.find(f => f.name === EXCEL_FILE_NAME) || list.find(f => /\.xlsx$/i.test(f.name || ''));
+    if (!match) throw new Error('workbook-not-found');
+    graphDriveId = null;
+    localStorage.setItem(GRAPH_FILE_ID_KEY, JSON.stringify({ id: match.id, driveId: null }));
+    return match.id;
   }
 
-  async function createWorkbookSession() {
-    try {
-      var res = await graphFetch(driveItemBase() + '/workbook/createSession', {
-        method: 'POST', body: JSON.stringify({ persistChanges: true })
-      });
-      return (res && res.id) || null;
-    } catch (e) { console.error('createSession failed', e); return null; }
+  async function graphReadTable(tableName){
+    const data = await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows');
+    return (data.value || []).map(r => r.values[0]);
   }
-
-  // =====================================================================
-  // CRUD על טבלת Refunds
-  // =====================================================================
-  async function graphReadTable(tableName) {
-    var data = await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows');
-    return (data.value || []).map(function (r) { return r.values[0]; });
-  }
-  async function graphAddRow(tableName, values) {
+  async function graphAddRow(tableName, values){
     await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows', {
       method: 'POST', body: JSON.stringify({ values: [values] })
     });
   }
-  async function graphFindRowIndex(tableName, id) {
-    var rows = await graphReadTable(tableName);
-    for (var i = 0; i < rows.length; i++) { if (String(rows[i][0]) === String(id)) return i; }
+  async function graphFindRowIndex(tableName, id){
+    const rows = await graphReadTable(tableName);
+    for (let i=0;i<rows.length;i++){ if (String(rows[i][0]) === String(id)) return i; }
     return -1;
   }
-  // עדכון שורה: מנסים קודם את ה-API הרגיל של הטבלה (PATCH לפי אינדקס). אם זה נכשל -
-  // (למשל ApiNotFound/EditModeAccessDenied, אותה מגבלה מתועדת כמו במחיקה, בקבצים
-  // שפתוחים לעריכה משותפת ב-SharePoint) - נופלים לגיבוי: עדכון דרך ה-Range של השורה בגיליון.
-  async function graphUpdateRowAt(tableName, index, values) {
-    var base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
-    try {
-      await graphFetch(base + index, { method: 'PATCH', body: JSON.stringify({ values: [values] }) });
-    } catch (e1) {
-      try {
-        var rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
-        var address = rangeInfo && rangeInfo.address;
-        if (!address) throw new Error('row-range-not-found');
-        var bangIdx = address.lastIndexOf('!');
-        var sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
-        var cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
-        var sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
-        if (!sheetName) throw new Error('row-sheet-not-found');
-        await graphFetch(
-          driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')",
-          { method: 'PATCH', body: JSON.stringify({ values: [values] }) }
-        );
-      } catch (e2) {
-        throw new Error('rows/{index} PATCH failed: [' + e1.message + '] | range PATCH failed: [' + e2.message + ']');
-      }
-    }
+  async function graphUpdateRowAt(tableName, index, values){
+    await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows/' + index, {
+      method: 'PATCH', body: JSON.stringify({ values: [values] })
+    });
   }
-  // חשוב: מחיקה בשיטה הישירה נכשלת עם ApiNotFound בקבצים ב-SharePoint הפתוחים לעריכה משותפת.
-  // הפתרון: למחוק דרך ה-Range של השורה בגיליון, לא דרך ה-API של הטבלה.
-  async function graphDeleteRowAt(tableName, index) {
-    var base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
-    try {
-      var rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
-      var address = rangeInfo && rangeInfo.address;
+  async function graphDeleteRowAt(tableName, index){
+    const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
+    // The bare-index DELETE and the itemAt(...)/delete action both hit a documented
+    // Excel Graph API limitation ("ApiNotFound") for table rows in a workbook that
+    // lives in a SharePoint document library and is open for co-authoring - it is not
+    // a permissions problem. The reliable workaround is to resolve the row's
+    // underlying worksheet range and delete *that* range instead (shifting the rows
+    // below it up), which goes through a completely different API path unaffected by
+    // the bug. Trying this first (instead of after two requests we already know will
+    // fail on this workbook) also keeps the browser console free of the harmless-but
+    // -alarming-looking 400 errors those two attempts otherwise log on every delete.
+    try{
+      const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
+      const address = rangeInfo && rangeInfo.address;
       if (!address) throw new Error('row-range-not-found');
-      var bangIdx = address.lastIndexOf('!');
-      var sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
-      var cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
-      var sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
+      const bangIdx = address.lastIndexOf('!');
+      const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
+      const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
+      const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
       if (!sheetName) throw new Error('row-sheet-not-found');
       await graphFetch(
         driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')/delete",
         { method: 'POST', body: JSON.stringify({ shift: 'Up' }) }
       );
-    } catch (e3) {
-      try {
+      return;
+    } catch(e3){
+      // Fall back to the older approaches, in case this workbook is ever moved
+      // somewhere (e.g. a personal OneDrive) where they do work.
+      try{
         await graphFetch(base + index, { method: 'DELETE' });
-      } catch (e1) {
-        try {
+        return;
+      } catch(e1){
+        try{
           await graphFetch(base + 'itemAt(index=' + index + ')/delete', { method: 'POST' });
-        } catch (e2) {
+          return;
+        } catch(e2){
           throw new Error('range/delete failed: [' + e3.message + '] | DELETE failed: [' + e1.message + '] | itemAt/delete failed: [' + e2.message + ']');
         }
       }
     }
   }
 
-  // =====================================================================
-  // טעינה מ-Graph + הפעלת מצב מחובר
-  // =====================================================================
-  async function loadFromGraph() {
-    var rows = await graphReadTable(REFUNDS_TABLE);
-    state.records = rows.map(rowToObj);
-    state.dataReady = true;
-    setStatus("live", "מחובר · נתונים משותפים לכל הצוות");
-    populateFilterOptions();
+  async function loadFromGraph(){
+    const orderRows = await graphReadTable(ORDERS_TABLE);
+    orders = orderRows.filter(r => r[0] && String(r[0]).trim()).map(rowToOrder);
+    const realRows = await graphReadTable(REALIZATIONS_TABLE);
+    const realizations = realRows.filter(r => r[0] && String(r[0]).trim()).map(rowToRealization);
+    const map = {};
+    realizations.forEach(r=>{
+      const key = r.key || archKey(r.name, r.number);
+      const docId = archDocId(key);
+      if (!map[docId]) map[docId] = { name:r.name, number:r.number, realizations: [] };
+      map[docId].realizations.push({ id:r.id, amount:r.amount, method:r.method, createdAt: r.date ? (Date.parse(r.date)||Date.now()) : Date.now() });
+    });
+    architectMeta = map;
     render();
   }
 
-  async function activateGraphMode(account) {
-    document.getElementById('msGateOverlay').style.display = 'none';
+  async function activateGraphMode(account){
+    document.getElementById('msGateOverlay').hidden = true;
     document.getElementById('msAccountBox').hidden = false;
     document.getElementById('msAccountLabel').textContent = (account && (account.username || account.name)) || '';
-    try {
+    try{
       graphFileId = await findWorkbookFile();
       graphSessionId = await createWorkbookSession();
       await loadFromGraph();
       graphAvailable = true;
+      document.getElementById('syncNote').textContent = 'הנתונים נשמרים בקובץ ה-Excel שלכם ב-OneDrive, ומשותפים לכל מי שמחובר.';
       if (graphPollTimer) clearInterval(graphPollTimer);
-      graphPollTimer = setInterval(function () { loadFromGraph().catch(function (e) { console.error('poll error', e); }); }, 25000);
-    } catch (e) {
+      graphPollTimer = setInterval(()=>{ loadFromGraph().catch(e=>console.error('poll error', e)); }, 25000);
+    } catch(e){
       console.error('graph activation error', e);
+      graphAvailable = false;
       document.getElementById('msAccountBox').hidden = true;
-      setStatus("err", "לא הצלחנו לאתר את קובץ ה-Excel");
-      renderEmpty("לא הצלחנו לאתר את קובץ ה-Excel. ודאו שהקובץ קיים במיקום שהוגדר בקוד.");
+      showBanner('לא הצלחנו לאתר את קובץ "' + EXCEL_FILE_NAME + '" ב-OneDrive של החשבון המחובר. ודאו שהקובץ קיים ונסו לרענן, או המשיכו במצב תצוגה מקדימה מקומי.');
+      initLocalFallback();
     }
   }
 
-  // =====================================================================
-  // רשימות ערכים נגזרות (לסינון ולהשלמה אוטומטית)
-  // =====================================================================
-  function uniqueSorted(field) {
-    var set = {};
-    state.records.forEach(function (r) { if (r[field]) set[r[field]] = true; });
-    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, "he"); });
+  function exampleRows(){
+    return [
+      {date:'2026-08-10', customerNumber:'1042', customerName:'משפחת לוי', architectName:'דנה כהן אדריכלים', architectNumber:'A-118', quoteNumber:'Q-3391', quoteNotified:true, orderNumber:'O-8821', orderAmount:42500, orderNotified:true, paidByCustomer:42500, orderStatus:'סופק', benefitNotified:true, paidToArchitect:4250, bonusBudget:4250, marketingBudget:850, handlingStatus:'סגור', customerCredits:0, isExample:true, createdAt:Date.now()-40*86400000},
+      {date:'2026-08-22', customerNumber:'1077', customerName:'בראל ושות׳', architectName:'עומר שגיא סטודיו לעיצוב', architectNumber:'A-204', quoteNumber:'Q-3405', quoteNotified:true, orderNumber:'O-8846', orderAmount:68900, orderNotified:false, paidByCustomer:40000, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:6890, marketingBudget:1378, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-28*86400000},
+      {date:'2026-09-01', customerNumber:'1090', customerName:'וילת הכרמל', architectName:'דנה כהן אדריכלים', architectNumber:'A-118', quoteNumber:'Q-3420', quoteNotified:true, orderNumber:'O-8860', orderAmount:125000, orderNotified:true, paidByCustomer:125000, orderStatus:'סופק', benefitNotified:false, paidToArchitect:6000, bonusBudget:12500, marketingBudget:2500, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-5*86400000},
+      {date:'2026-09-04', customerNumber:'1103', customerName:'משרד עו״ד רימון', architectName:'נטלי אבידור אדריכלות פנים', architectNumber:'A-256', quoteNumber:'Q-3431', quoteNotified:false, orderNumber:'O-8875', orderAmount:15300, orderNotified:false, paidByCustomer:0, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:1530, marketingBudget:306, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-2*86400000},
+      {date:'2026-09-06', customerNumber:'1110', customerName:'דירת פנטהאוז רוטשילד', architectName:'עומר שגיא סטודיו לעיצוב', architectNumber:'A-204', quoteNumber:'Q-3448', quoteNotified:true, orderNumber:'', orderAmount:0, orderNotified:false, paidByCustomer:0, orderStatus:'הזמנה', benefitNotified:false, paidToArchitect:0, bonusBudget:0, marketingBudget:0, handlingStatus:'פתוח', customerCredits:0, isExample:true, createdAt:Date.now()-1*86400000},
+    ];
   }
 
-  function populateFilterOptions() {
-    fillSelect("fArchitect", uniqueSorted("architectName"), state.filters.architect);
-    fillSelect("fSalesperson", uniqueSorted("salesperson"), state.filters.salesperson);
-    fillSelect("fReason", uniqueSorted("refundReason"), state.filters.reason);
-    fillDatalist(ARCHITECT_SUGGESTIONS_ID, uniqueSorted("architectName"));
-    fillDatalist(SALES_SUGGESTIONS_ID, uniqueSorted("salesperson"));
-    fillDatalist(REASON_SUGGESTIONS_ID, uniqueSorted("refundReason"));
+  function exampleArchitectMeta(){
+    const key = archKey('דנה כהן אדריכלים','A-118');
+    const docId = archDocId(key);
+    return { [docId]: {
+      name:'דנה כהן אדריכלים', number:'A-118',
+      realizations:[
+        {id:'r1', amount:1000, method:'יום צילום', createdAt:Date.now()-10*86400000},
+        {id:'r2', amount:1000, method:'יום כיף', createdAt:Date.now()-3*86400000},
+      ]
+    }};
   }
 
-  function fillSelect(id, values, current) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var html = '<option value="">הכל</option>';
-    values.forEach(function (v) {
-      html += '<option value="' + esc(v) + '"' + (v === current ? " selected" : "") + ">" + esc(v) + "</option>";
-    });
-    el.innerHTML = html;
+  const LOCAL_KEY = 'architect-orders-preview-v4';
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(LOCAL_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e){ /* private mode / blocked storage: fall through */ }
+    return null;
+  }
+  function saveLocal(){
+    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(orders)); } catch(e){ /* ignore */ }
   }
 
-  function fillDatalist(id, values) {
-    var el = document.getElementById(id);
-    if (!el) {
-      el = document.createElement("datalist");
-      el.id = id;
-      document.getElementById("modalRoot").appendChild(el);
+  const ARCH_META_KEY = 'architect-meta-preview-v1';
+  function loadLocalMeta(){
+    try{
+      const raw = localStorage.getItem(ARCH_META_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch(e){ /* ignore */ }
+    return null;
+  }
+  function saveLocalMeta(){
+    try{ localStorage.setItem(ARCH_META_KEY, JSON.stringify(architectMeta)); } catch(e){ /* ignore */ }
+  }
+
+  function showBanner(msg, kind){
+    const b = document.getElementById('banner');
+    b.textContent = msg;
+    b.className = 'banner' + (kind==='info' ? ' info' : '');
+    b.hidden = false;
+  }
+
+  // Custom confirm dialog: some hosting contexts (e.g. a sandboxed preview iframe)
+  // silently block the native window.confirm(), which would make delete buttons
+  // appear to do nothing. This in-page dialog works everywhere instead.
+  let confirmResolver = null;
+  function showConfirm(message){
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmOverlay').hidden = false;
+    return new Promise(resolve => { confirmResolver = resolve; });
+  }
+  function resolveConfirm(result){
+    document.getElementById('confirmOverlay').hidden = true;
+    if (confirmResolver){ confirmResolver(result); confirmResolver = null; }
+  }
+
+  function initLocalFallback(){
+    dbAvailable = false;
+    graphAvailable = false;
+    document.getElementById('syncNote').textContent = '';
+    showBanner('מצב תצוגה מקדימה לבדיקה: הנתונים נשמרים רק בדפדפן הזה ואינם משותפים לאף אחד אחר.', 'info');
+    const stored = loadLocal();
+    if (stored && stored.length){
+      orders = stored;
+    } else {
+      orders = exampleRows().map((r,i)=>({id:'local-'+i, ...r}));
+      saveLocal();
     }
-    el.innerHTML = values.map(function (v) { return '<option value="' + esc(v) + '">'; }).join("");
+    const storedMeta = loadLocalMeta();
+    if (storedMeta && Object.keys(storedMeta).length){
+      architectMeta = storedMeta;
+    } else {
+      architectMeta = exampleArchitectMeta();
+      saveLocalMeta();
+    }
+    render();
   }
 
-  // =====================================================================
-  // סינון ומיון
-  // =====================================================================
-  function getFiltered() {
-    var f = state.filters;
-    var customerQuery = f.customer.trim().toLowerCase();
-    return state.records.filter(function (r) {
-      if (f.dateFrom && (!r.refundDate || r.refundDate < f.dateFrom)) return false;
-      if (f.dateTo && (!r.refundDate || r.refundDate > f.dateTo)) return false;
-      if (customerQuery && r.customerName.toLowerCase().indexOf(customerQuery) === -1) return false;
-      if (f.architect && r.architectName !== f.architect) return false;
-      if (f.salesperson && r.salesperson !== f.salesperson) return false;
-      if (f.reason && r.refundReason !== f.reason) return false;
+  async function init(){
+    try{
+      db = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('db') : null;
+    } catch(e){ db = null; }
+
+    if (db){
+      dbAvailable = true;
+      document.getElementById('syncNote').textContent = 'הנתונים נשמרים אוטומטית ומשותפים לכל מי שפותח את הכלי בארגון.';
+      subscribeOrders();
+      maybeSeed();
+      subscribeArchitectMeta();
+      maybeSeedArchitectMeta();
+      return;
+    }
+
+    dbAvailable = false;
+    const msalReady = await initMsal();
+    if (graphAvailable) return; // initMsal() already activated it via a completed redirect
+    if (msalReady){
+      const silent = await acquireGraphTokenSilent();
+      if (silent){
+        graphAccessToken = silent.accessToken;
+        await activateGraphMode(silent.account);
+        return;
+      }
+      document.getElementById('msGateOverlay').hidden = false;
+      return;
+    }
+    initLocalFallback();
+  }
+
+  function subscribeOrders(){
+    db.collection('orders').onSnapshot(
+      snap => {
+        orders = snap.docs.map(d => ({id:d.id, ...d.data()}));
+        render();
+      },
+      err => {
+        console.error('orders subscription error', err);
+        showBanner('אירעה שגיאה בטעינת הנתונים. נסו לרענן את הדף.');
+      }
+    );
+  }
+
+  async function maybeSeed(){
+    try{
+      const seedDoc = await db.doc('meta/seeded').get();
+      if (seedDoc.exists) return;
+      const existing = await db.collection('orders').limit(1).get();
+      if (existing.empty){
+        for (const row of exampleRows()){
+          await db.collection('orders').add(row);
+        }
+      }
+      await db.doc('meta/seeded').set({done:true, at:Date.now()});
+    } catch(e){ console.error('seed error', e); }
+  }
+
+  function subscribeArchitectMeta(){
+    db.collection('architectMeta').onSnapshot(
+      snap => {
+        const map = {};
+        snap.docs.forEach(d=>{ map[d.id] = d.data(); });
+        architectMeta = map;
+        render();
+      },
+      err => { console.error('architect meta subscription error', err); }
+    );
+  }
+
+  async function maybeSeedArchitectMeta(){
+    try{
+      const seedDoc = await db.doc('meta/architectMetaSeeded').get();
+      if (seedDoc.exists) return;
+      const existing = await db.collection('architectMeta').limit(1).get();
+      if (existing.empty){
+        const seed = exampleArchitectMeta();
+        for (const docId of Object.keys(seed)){
+          await db.collection('architectMeta').doc(docId).set(seed[docId]);
+        }
+      }
+      await db.doc('meta/architectMetaSeeded').set({done:true, at:Date.now()});
+    } catch(e){ console.error('seed architect meta error', e); }
+  }
+
+  async function addRealization(key, name, number, amount, method){
+    const docId = archDocId(key);
+    try{
+      if (graphAvailable){
+        const entry = { id:'r'+Date.now()+Math.floor(Math.random()*1000), key, name, number, date:new Date().toISOString().slice(0,10), amount:num(amount), method:String(method||'').trim() };
+        await graphAddRow(REALIZATIONS_TABLE, realizationToRow(entry));
+        await loadFromGraph();
+        return;
+      }
+      const existing = architectMeta[docId] || {name, number, realizations:[]};
+      const entry = {id:'r'+Date.now()+Math.floor(Math.random()*1000), amount:num(amount), method:String(method||'').trim(), createdAt:Date.now()};
+      const data = {name, number, realizations:[...(existing.realizations||[]), entry]};
+      architectMeta = {...architectMeta, [docId]: data};
+      render();
+      if (dbAvailable){
+        await db.collection('architectMeta').doc(docId).set(data);
+      } else {
+        saveLocalMeta();
+      }
+    } catch(e){
+      console.error('add realization error', e);
+      showBanner('שמירת המימוש נכשלה. נסו שוב.');
+    }
+  }
+
+  async function deleteRealization(key, entryId){
+    try{
+      if (graphAvailable){
+        const idx = await graphFindRowIndex(REALIZATIONS_TABLE, entryId);
+        if (idx>-1) await graphDeleteRowAt(REALIZATIONS_TABLE, idx);
+        await loadFromGraph();
+        return;
+      }
+      const docId = archDocId(key);
+      const existing = architectMeta[docId];
+      if (!existing) return;
+      const data = {...existing, realizations:(existing.realizations||[]).filter(r=>r.id!==entryId)};
+      architectMeta = {...architectMeta, [docId]: data};
+      render();
+      if (dbAvailable){
+        await db.collection('architectMeta').doc(docId).set(data);
+      } else {
+        saveLocalMeta();
+      }
+    } catch(e){
+      console.error('delete realization error', e);
+      showBanner('מחיקת המימוש נכשלה: ' + (e && e.message ? e.message : 'שגיאה לא ידועה'));
+    }
+  }
+
+  async function saveOrder(data){
+    try{
+      if (graphAvailable){
+        if (editingId){
+          const merged = {...(orders.find(o=>o.id===editingId)||{}), ...data, id: editingId};
+          const idx = await graphFindRowIndex(ORDERS_TABLE, editingId);
+          if (idx>-1) await graphUpdateRowAt(ORDERS_TABLE, idx, orderToRow(merged));
+        } else {
+          const newOrder = {...data, id:'o'+Date.now()+Math.floor(Math.random()*1000), createdAt:Date.now()};
+          await graphAddRow(ORDERS_TABLE, orderToRow(newOrder));
+        }
+        await loadFromGraph();
+      } else if (dbAvailable){
+        if (editingId){
+          await db.collection('orders').doc(editingId).update(data);
+        } else {
+          data.createdAt = Date.now();
+          await db.collection('orders').add(data);
+        }
+      } else {
+        if (editingId){
+          const idx = orders.findIndex(o=>o.id===editingId);
+          if (idx>-1) orders[idx] = {...orders[idx], ...data};
+        } else {
+          data.createdAt = Date.now();
+          orders.unshift({id:'local-'+Date.now(), ...data});
+        }
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('save error', e);
+      showBanner('שמירת ההזמנה נכשלה. נסו שוב.');
+    }
+  }
+
+  async function deleteOrder(id){
+    try{
+      if (graphAvailable){
+        const idx = await graphFindRowIndex(ORDERS_TABLE, id);
+        if (idx>-1) await graphDeleteRowAt(ORDERS_TABLE, idx);
+        await loadFromGraph();
+      } else if (dbAvailable){
+        await db.collection('orders').doc(id).delete();
+      } else {
+        orders = orders.filter(o=>o.id!==id);
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('delete error', e);
+      showBanner('מחיקת ההזמנה נכשלה: ' + (e && e.message ? e.message : 'שגיאה לא ידועה'));
+    }
+  }
+
+  async function toggleNotified(id, field){
+    const o = orders.find(x=>x.id===id);
+    if (!o) return;
+    const patch = { [field]: !o[field] };
+    try{
+      if (graphAvailable){
+        const merged = {...o, ...patch};
+        const idx = await graphFindRowIndex(ORDERS_TABLE, id);
+        if (idx>-1) await graphUpdateRowAt(ORDERS_TABLE, idx, orderToRow(merged));
+        await loadFromGraph();
+      } else if (dbAvailable){
+        await db.collection('orders').doc(id).update(patch);
+      } else {
+        const idx = orders.findIndex(x=>x.id===id);
+        if (idx>-1) orders[idx] = {...orders[idx], ...patch};
+        saveLocal();
+        render();
+      }
+    } catch(e){
+      console.error('toggle error', e);
+      showBanner('עדכון סטטוס ההודעה נכשל. נסו שוב.');
+    }
+  }
+
+  async function clearExamples(){
+    const examples = orders.filter(o=>o.isExample);
+    for (const o of examples){ await deleteOrder(o.id); }
+  }
+
+  function getFiltered(){
+    return orders.filter(o=>{
+      if (filterHandling!=='all' && o.handlingStatus!==filterHandling) return false;
+      if (filterOrderStatus!=='all' && o.orderStatus!==filterOrderStatus) return false;
+      if (filterArchitect!=='all' && o.architectName!==filterArchitect) return false;
+      if (filterNotifyStatus!=='all'){
+        const allDone = !!(o.quoteNotified && o.orderNotified && o.benefitNotified);
+        if (filterNotifyStatus==='missing-any' && allDone) return false;
+        if (filterNotifyStatus==='all-done' && !allDone) return false;
+        if (filterNotifyStatus==='missing-quote' && o.quoteNotified) return false;
+        if (filterNotifyStatus==='missing-order' && o.orderNotified) return false;
+        if (filterNotifyStatus==='missing-benefit' && o.benefitNotified) return false;
+      }
+      if (filterProcessState!=='all'){
+        const hasOrder = !!String(o.orderNumber||'').trim();
+        const hasQuote = !!String(o.quoteNumber||'').trim();
+        const archBalance = num(o.bonusBudget) - num(o.paidToArchitect);
+        if (filterProcessState==='quote-no-order' && !(hasQuote && !hasOrder)) return false;
+        if (filterProcessState==='delivered-unpaid-customer' && !(o.orderStatus==='סופק' && num(o.paidByCustomer) < num(o.orderAmount))) return false;
+        if (filterProcessState==='delivered-unpaid-architect' && !(o.orderStatus==='סופק' && archBalance>0)) return false;
+        if (filterProcessState==='closed-with-balance' && !(o.handlingStatus==='סגור' && archBalance>0)) return false;
+      }
+      if (filterDateFrom && String(o.date||'') < filterDateFrom) return false;
+      if (filterDateTo && String(o.date||'') > filterDateTo) return false;
+      if (filterText){
+        const t = filterText.trim().toLowerCase();
+        const hay = [o.customerName,o.customerNumber,o.architectName,o.architectNumber,o.orderNumber,o.quoteNumber]
+          .map(v=>String(v||'').toLowerCase()).join(' ');
+        if (!hay.includes(t)) return false;
+      }
       return true;
     });
   }
 
-  function getSorted(list) {
-    var field = state.sortField, dir = state.sortDir;
-    var copy = list.slice();
-    copy.sort(function (a, b) {
-      var av = a[field], bv = b[field];
-      if (av === null || av === undefined || av === "") av = dir === "asc" ? Infinity : -Infinity;
-      if (bv === null || bv === undefined || bv === "") bv = dir === "asc" ? Infinity : -Infinity;
-      if (typeof av === "string") av = av.toLowerCase();
-      if (typeof bv === "string") bv = bv.toLowerCase();
-      if (av < bv) return dir === "asc" ? -1 : 1;
-      if (av > bv) return dir === "asc" ? 1 : -1;
+  function getSorted(list){
+    return [...list].sort((a,b)=>{
+      let av, bv;
+      if (sortKey==='balance'){
+        av = num(a.bonusBudget) - num(a.paidToArchitect);
+        bv = num(b.bonusBudget) - num(b.paidToArchitect);
+      } else {
+        av = a[sortKey]; bv = b[sortKey];
+        const numeric = ['orderAmount','paidByCustomer','bonusBudget','paidToArchitect'].includes(sortKey);
+        if (numeric){ av = num(av); bv = num(bv); }
+        else { av = String(av||''); bv = String(bv||''); }
+      }
+      if (av<bv) return sortDir==='asc' ? -1 : 1;
+      if (av>bv) return sortDir==='asc' ? 1 : -1;
       return 0;
     });
-    return copy;
   }
 
-  // =====================================================================
-  // רינדור
-  // =====================================================================
-  function render() {
-    var filtered = getFiltered();
-    var sorted = getSorted(filtered);
+  // key -> Hebrew column header, in the order they should appear in the exported file.
+  const ORDER_EXPORT_COLUMNS = [
+    ['date','תאריך'],
+    ['customerNumber','מספר לקוח'],
+    ['customerName','שם לקוח'],
+    ['architectNumber','מספר אדריכל'],
+    ['architectName','שם אדריכל'],
+    ['quoteNumber','מספר הצעת מחיר'],
+    ['quoteNotified','נמסרה הודעה על הצעת המחיר'],
+    ['orderNumber','מספר הזמנה'],
+    ['orderAmount','סכום הזמנה'],
+    ['orderStatus','סטטוס הזמנה'],
+    ['orderNotified','נמסרה הודעה על ההזמנה'],
+    ['paidByCustomer','שולם ע"י הלקוח'],
+    ['customerCredits','זיכויים והחזרים ללקוח'],
+    ['bonusBudget','עמלת אדריכל'],
+    ['paidToArchitect','שולם לאדריכל'],
+    ['marketingBudget','תקציב שיווק לאדריכל'],
+    ['benefitNotified','נמסרה הודעה על ההטבה'],
+    ['handlingStatus','סטטוס טיפול'],
+  ];
 
-    document.getElementById("kpiCount").textContent = new Intl.NumberFormat("he-IL").format(filtered.length);
-    document.getElementById("kpiCountNote").textContent = filtered.length === state.records.length
-      ? "מתוך " + state.records.length + " רשומות במערכת"
-      : "מתוך " + state.records.length + " רשומות (מסונן)";
-
-    var txnSum = filtered.reduce(function (s, r) { return s + (r.transactionAmount || 0); }, 0);
-    var refundSum = filtered.reduce(function (s, r) { return s + (r.refundAmount || 0); }, 0);
-    document.getElementById("kpiTxn").textContent = fmtCurrency(txnSum);
-    document.getElementById("kpiRefund").textContent = fmtCurrency(refundSum);
-    document.getElementById("kpiRefundNote").textContent = txnSum > 0
-      ? (Math.round((refundSum / txnSum) * 1000) / 10) + "% מסך העסקאות המסוננות"
-      : " ";
-
-    document.getElementById("filterSummary").textContent =
-      "מציג " + sorted.length + " מתוך " + state.records.length + " רשומות";
-
-    renderSortArrows();
-    renderTable(sorted);
-  }
-
-  function renderEmpty(message) {
-    document.getElementById("tbody").innerHTML =
-      '<tr><td colspan="10"><div class="empty-state">' + esc(message) + "</div></td></tr>";
-  }
-
-  function renderSortArrows() {
-    document.querySelectorAll("th[data-sort]").forEach(function (th) {
-      var field = th.getAttribute("data-sort");
-      var base = th.textContent.replace(/\s*[▲▼]$/, "");
-      th.textContent = base;
-      if (field === state.sortField) {
-        var arrow = document.createElement("span");
-        arrow.className = "arrow";
-        arrow.textContent = state.sortDir === "asc" ? "▲" : "▼";
-        th.appendChild(arrow);
-      }
-    });
-  }
-
-  function renderTable(list) {
-    var tbody = document.getElementById("tbody");
-    if (!state.dataReady) {
-      renderEmpty("טוען נתונים…");
+  // Exports exactly what's currently shown in the orders table (same filters/sort
+  // the person has applied), as a plain .xlsx file they can download and send on.
+  function exportOrdersToExcel(){
+    if (typeof XLSX === 'undefined'){
+      showBanner('לא ניתן לייצא כרגע - ספריית הייצוא לא נטענה. בדקו את החיבור לאינטרנט ונסו שוב.');
       return;
     }
-    if (list.length === 0) {
-      renderEmpty(state.records.length === 0 ? "אין עדיין רשומות החזר במערכת. לחצו על “הוספת החזר חדש” כדי להתחיל." : "לא נמצאו רשומות התואמות לסינון.");
+    const list = getSorted(getFiltered());
+    if (!list.length){
+      showBanner('אין הזמנות להצגה עם הסינון הנוכחי - אין מה לייצא.', 'info');
       return;
     }
-    var rows = list.map(function (r) {
-      if (state.editingId === r.id) return renderEditRow(r);
-      return renderRow(r);
-    });
-    tbody.innerHTML = rows.join("");
-    if (state.editingId) enhanceDateField("edit_refundDate");
-    tbody.querySelectorAll("[data-edit]").forEach(function (btn) {
-      btn.addEventListener("click", function () { state.editingId = btn.getAttribute("data-edit"); state.deletingId = null; render(); });
-    });
-    tbody.querySelectorAll("[data-cancel-edit]").forEach(function (btn) {
-      btn.addEventListener("click", function () { state.editingId = null; render(); });
-    });
-    tbody.querySelectorAll("[data-save-edit]").forEach(function (btn) {
-      btn.addEventListener("click", function () { saveEditRow(btn.getAttribute("data-save-edit")); });
-    });
-    tbody.querySelectorAll("[data-delete]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var id = btn.getAttribute("data-delete");
-        if (state.deletingId === id) { deleteRecord(id); }
-        else { state.deletingId = id; state.editingId = null; render(); }
-      });
-    });
+    const header = ORDER_EXPORT_COLUMNS.map(c=>c[1]);
+    const rows = list.map(o => ORDER_EXPORT_COLUMNS.map(([key])=>{
+      const v = o[key];
+      if (BOOL_ORDER_FIELDS.has(key)) return v ? 'כן' : 'לא';
+      if (NUM_ORDER_FIELDS.has(key)) return num(v);
+      return v != null ? v : '';
+    }));
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = header.map(()=>({ wch: 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'הזמנות');
+    XLSX.writeFile(wb, 'הזמנות-' + new Date().toISOString().slice(0,10) + '.xlsx');
   }
 
-  function renderRow(r) {
-    var isConfirmingDelete = state.deletingId === r.id;
-    return (
-      "<tr>" +
-      '<td class="num">' + esc(r.customerCode || "—") + "</td>" +
-      "<td>" + esc(r.customerName || "—") + "</td>" +
-      '<td class="num">' + fmtCurrency(r.transactionAmount) + "</td>" +
-      "<td>" + esc(r.salesperson || "—") + "</td>" +
-      '<td class="num">' + fmtDate(r.refundDate) + "</td>" +
-      '<td class="num">' + fmtCurrency(r.refundAmount) + "</td>" +
-      "<td><span class=\"reason-pill\">" + esc(r.refundReason || "—") + "</span></td>" +
-      "<td>" + esc(r.architectName || "—") + "</td>" +
-      '<td class="notes">' + esc(r.notes || "—") + "</td>" +
-      '<td class="actions">' +
-      '<button class="btn ghost small" data-edit="' + r.id + '" type="button">עריכה</button> ' +
-      '<button class="btn ' + (isConfirmingDelete ? "danger" : "ghost") + ' small" data-delete="' + r.id + '" type="button">' +
-      (isConfirmingDelete ? "לאשר מחיקה?" : "מחיקה") +
-      "</button>" +
-      "</td>" +
-      "</tr>"
-    );
-  }
-
-  function renderEditRow(r) {
-    return (
-      '<tr class="row-edit">' +
-      '<td><input type="text" id="edit_customerCode" value="' + esc(r.customerCode) + '"></td>' +
-      '<td><input type="text" id="edit_customerName" value="' + esc(r.customerName) + '"></td>' +
-      '<td><input type="number" step="0.01" id="edit_transactionAmount" value="' + (r.transactionAmount === null ? "" : r.transactionAmount) + '"></td>' +
-      '<td><input type="text" id="edit_salesperson" value="' + esc(r.salesperson) + '" list="' + SALES_SUGGESTIONS_ID + '"></td>' +
-      '<td><input type="date" id="edit_refundDate" value="' + esc(r.refundDate) + '"></td>' +
-      '<td><input type="number" step="0.01" id="edit_refundAmount" value="' + (r.refundAmount === null ? "" : r.refundAmount) + '"></td>' +
-      '<td><input type="text" id="edit_refundReason" value="' + esc(r.refundReason) + '" list="' + REASON_SUGGESTIONS_ID + '"></td>' +
-      '<td><input type="text" id="edit_architectName" value="' + esc(r.architectName) + '" list="' + ARCHITECT_SUGGESTIONS_ID + '"></td>' +
-      '<td><input type="text" id="edit_notes" value="' + esc(r.notes) + '"></td>' +
-      '<td class="actions">' +
-      '<button class="btn primary small" data-save-edit="' + r.id + '" type="button">שמירה</button> ' +
-      '<button class="btn ghost small" data-cancel-edit="' + r.id + '" type="button">ביטול</button>' +
-      "</td>" +
-      "</tr>"
-    );
-  }
-
-  async function saveEditRow(id) {
-    var num = function (v) { v = (v || "").trim(); return v === "" ? null : Number(v); };
-    var payload = {
-      id: id,
-      customerCode: document.getElementById("edit_customerCode").value.trim(),
-      customerName: document.getElementById("edit_customerName").value.trim(),
-      transactionAmount: num(document.getElementById("edit_transactionAmount").value),
-      salesperson: document.getElementById("edit_salesperson").value.trim(),
-      refundDate: document.getElementById("edit_refundDate").value,
-      refundAmount: num(document.getElementById("edit_refundAmount").value),
-      refundReason: document.getElementById("edit_refundReason").value.trim(),
-      architectName: document.getElementById("edit_architectName").value.trim(),
-      notes: document.getElementById("edit_notes").value.trim()
-    };
-    var btn = document.querySelector('[data-save-edit="' + id + '"]');
-    if (btn) { btn.disabled = true; btn.textContent = "שומר…"; }
-    try {
-      var idx = await graphFindRowIndex(REFUNDS_TABLE, id);
-      if (idx === -1) throw new Error('row-not-found');
-      await graphUpdateRowAt(REFUNDS_TABLE, idx, objToRow(payload));
-      state.editingId = null;
-      await loadFromGraph();
-    } catch (e) {
-      // חשוב: לא לקרוא ל-render() כאן - render() היה מצייר מחדש את שורת העריכה לפי הנתונים
-      // המקוריים (state.records) ומוחק את מה שהמשתמשת הקלידה. במקום זה, רק משחררים
-      // את הכפתור כדי שאפשר יהיה ללחוץ שוב על "שמירה" בלי לאבד את התיקון שהוקלד.
-      console.error("update failed", e);
-      if (btn) { btn.disabled = false; btn.textContent = "שמירה"; }
-      alertInline("שמירת השינויים נכשלה. נסו שוב.");
-    }
-  }
-
-  async function deleteRecord(id) {
-    try {
-      var idx = await graphFindRowIndex(REFUNDS_TABLE, id);
-      if (idx === -1) throw new Error('row-not-found');
-      await graphDeleteRowAt(REFUNDS_TABLE, idx);
-      state.deletingId = null;
-      await loadFromGraph();
-    } catch (e) {
-      console.error("delete failed", e);
-      alertInline("מחיקת הרשומה נכשלה. נסו שוב.");
-      state.deletingId = null;
-      render();
-    }
-  }
-
-  function alertInline(msg) {
-    setStatus("err", msg);
-    setTimeout(function () { setStatus(state.dataReady ? "live" : "", state.dataReady ? "מחובר · נתונים משותפים לכל הצוות" : "מתחבר…"); }, 4000);
-  }
-
-  // =====================================================================
-  // סינון - חיווט אירועים
-  // =====================================================================
-  function wireFilters() {
-    document.getElementById("fDateFrom").addEventListener("change", function (e) { state.filters.dateFrom = e.target.value; render(); });
-    document.getElementById("fDateTo").addEventListener("change", function (e) { state.filters.dateTo = e.target.value; render(); });
-    document.getElementById("fCustomer").addEventListener("input", debounce(function (e) { state.filters.customer = e.target.value; render(); }, 180));
-    document.getElementById("fArchitect").addEventListener("change", function (e) { state.filters.architect = e.target.value; render(); });
-    document.getElementById("fSalesperson").addEventListener("change", function (e) { state.filters.salesperson = e.target.value; render(); });
-    document.getElementById("fReason").addEventListener("change", function (e) { state.filters.reason = e.target.value; render(); });
-    document.getElementById("clearFiltersBtn").addEventListener("click", function () {
-      state.filters = { dateFrom: "", dateTo: "", customer: "", architect: "", salesperson: "", reason: "" };
-      document.getElementById("fDateFrom").value = "";
-      document.getElementById("fDateTo").value = "";
-      document.getElementById("fCustomer").value = "";
-      document.getElementById("fArchitect").value = "";
-      document.getElementById("fSalesperson").value = "";
-      document.getElementById("fReason").value = "";
-      render();
-    });
-    document.querySelectorAll("th[data-sort]").forEach(function (th) {
-      th.addEventListener("click", function () {
-        var field = th.getAttribute("data-sort");
-        if (state.sortField === field) { state.sortDir = state.sortDir === "asc" ? "desc" : "asc"; }
-        else { state.sortField = field; state.sortDir = "asc"; }
-        render();
-      });
-    });
-  }
-
-  function debounce(fn, wait) {
-    var t;
-    return function () {
-      var args = arguments, ctx = this;
-      clearTimeout(t);
-      t = setTimeout(function () { fn.apply(ctx, args); }, wait);
+  function computeStats(list){
+    const archGroups = computeArchitects(list);
+    return {
+      openCount: list.filter(o=>o.handlingStatus==='פתוח').length,
+      totalOrders: list.reduce((s,o)=>s+num(o.orderAmount),0),
+      custBalance: list.reduce((s,o)=>s+Math.max(num(o.orderAmount)-num(o.paidByCustomer),0),0),
+      archPending: list.reduce((s,o)=>s+Math.max(num(o.bonusBudget)-num(o.paidToArchitect),0),0),
+      archPaid: list.reduce((s,o)=>s+num(o.paidToArchitect),0),
+      marketingTotal: list.reduce((s,o)=>s+num(o.marketingBudget),0),
+      marketingUsedTotal: archGroups.reduce((s,g)=>s+g.realized,0),
+      marketingRemaining: archGroups.reduce((s,g)=>s+g.remaining,0),
+      notifyPending: list.filter(o=>!(o.quoteNotified && o.orderNotified && o.benefitNotified)).length,
     };
   }
 
-  // =====================================================================
-  // מודאל הוספה
-  // =====================================================================
-  function openAddModal() {
-    var today = new Date().toISOString().slice(0, 10);
-    var html =
-      '<div class="modal-backdrop" id="addBackdrop">' +
-      '<div class="modal">' +
-      "<h2>הוספת החזר חדש</h2>" +
-      '<div class="modal-sub">כל השדות המסומנים ב-* הינם שדות חובה</div>' +
-      '<div class="modal-grid">' +
-      field("customerCode", "מס' לקוח", "text", "") +
-      '<div class="dup-note full" id="customerDupNote"></div>' +
-      field("customerName", "שם לקוח *", "text", "") +
-      field("transactionAmount", "סכום העסקה (₪)", "number", "") +
-      field("salesperson", "איש מכירות", "text", "", SALES_SUGGESTIONS_ID) +
-      field("refundDate", "תאריך החזר *", "date", today) +
-      field("refundAmount", "סכום להחזר (₪) *", "number", "") +
-      field("refundReason", "סיבת החזר *", "text", "", REASON_SUGGESTIONS_ID) +
-      field("architectName", "שם אדריכל", "text", "", ARCHITECT_SUGGESTIONS_ID) +
-      '<div class="field full"><label for="add_notes">הערות</label><textarea id="add_notes" rows="2"></textarea></div>' +
-      "</div>" +
-      '<div class="modal-actions">' +
-      '<button class="btn ghost" id="cancelAddBtn" type="button">ביטול</button>' +
-      '<button class="btn primary" id="saveAddBtn" type="button">שמירת רשומה</button>' +
-      "</div>" +
-      "</div>" +
-      "</div>";
-    document.getElementById("modalRoot").insertAdjacentHTML("beforeend", html);
-    enhanceDateField("add_refundDate");
-    document.getElementById("cancelAddBtn").addEventListener("click", closeAddModal);
-    document.getElementById("addBackdrop").addEventListener("click", function (e) { if (e.target.id === "addBackdrop") closeAddModal(); });
-    document.getElementById("saveAddBtn").addEventListener("click", submitAdd);
-    document.getElementById("add_customerCode").addEventListener("input", debounce(checkCustomerCodeDuplicate, 220));
-  }
-
-  // בודק (בזמן ההקלדה) אם מספר הלקוח שהוזן כבר קיים ברשומות הקיימות - ואם כן,
-  // מציג הודעה (לא חוסם שמירה, כי ללקוח יכולים להיות כמה החזרים אמיתיים) וממלא
-  // אוטומטית את שם הלקוח אם השדה עדיין ריק.
-  function checkCustomerCodeDuplicate() {
-    var codeInput = document.getElementById("add_customerCode");
-    var note = document.getElementById("customerDupNote");
-    var nameInput = document.getElementById("add_customerName");
-    if (!codeInput || !note) return;
-    var code = codeInput.value.trim();
-    if (!code) { note.classList.remove("show"); note.textContent = ""; return; }
-    var matches = state.records.filter(function (r) { return r.customerCode && r.customerCode === code; });
-    if (!matches.length) { note.classList.remove("show"); note.textContent = ""; return; }
-    var last = matches[matches.length - 1];
-    if (nameInput && !nameInput.value.trim() && last.customerName) {
-      nameInput.value = last.customerName;
+  function computeArchitects(list){
+    const map = new Map();
+    for (const o of list){
+      const key = archKey(o.architectName, o.architectNumber);
+      if (!map.has(key)) map.set(key, {name:o.architectName||'—', number:o.architectNumber||'', count:0, sales:0, bonus:0, paid:0, marketing:0});
+      const g = map.get(key);
+      g.count++; g.sales += num(o.orderAmount); g.bonus += num(o.bonusBudget); g.paid += num(o.paidToArchitect); g.marketing += num(o.marketingBudget);
     }
-    var datesList = matches.slice(-3).map(function (m) { return fmtDate(m.refundDate); }).join(", ");
-    note.textContent = "⚠ נמצאו " + matches.length + " רשומות קיימות עם מספר לקוח זה (" +
-      (last.customerName || "ללא שם") + ") בתאריכים: " + datesList + ". ודאו שזו אינה כפילות.";
-    note.classList.add("show");
+    return [...map.values()].map(g=>{
+      const key = archKey(g.name, g.number);
+      const docId = archDocId(key);
+      const meta = architectMeta[docId];
+      const realizations = (meta && meta.realizations) || [];
+      const realized = realizations.reduce((s,r)=>s+num(r.amount),0);
+      return {...g, balance:g.bonus-g.paid, key, docId, realizations, realized, remaining: g.marketing-realized};
+    }).sort((a,b)=>b.balance-a.balance);
   }
 
-  function field(id, label, type, value, listId) {
-    var listAttr = listId ? ' list="' + listId + '"' : "";
-    return (
-      '<div class="field" id="fieldwrap_' + id + '">' +
-      '<label for="add_' + id + '">' + esc(label) + "</label>" +
-      '<input type="' + type + '" id="add_' + id + '" value="' + esc(value) + '"' + listAttr + (type === "number" ? ' step="0.01"' : "") + ">" +
-      '<div class="field-err">שדה חובה</div>' +
-      "</div>"
-    );
-  }
-
-  function closeAddModal() {
-    var el = document.getElementById("addBackdrop");
-    if (el) el.remove();
-  }
-
-  function newRecordId() {
-    return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  }
-
-  async function submitAdd() {
-    var required = ["customerName", "refundDate", "refundAmount", "refundReason"];
-    var missing = false;
-    required.forEach(function (id) {
-      var input = document.getElementById("add_" + id);
-      var wrap = document.getElementById("fieldwrap_" + id);
-      if (!input.value.trim()) { wrap.classList.add("has-err"); missing = true; }
-      else wrap.classList.remove("has-err");
-    });
-    if (missing) return;
-
-    var num = function (v) { v = (v || "").trim(); return v === "" ? null : Number(v); };
-    var payload = {
-      id: newRecordId(),
-      customerCode: document.getElementById("add_customerCode").value.trim(),
-      customerName: document.getElementById("add_customerName").value.trim(),
-      transactionAmount: num(document.getElementById("add_transactionAmount").value),
-      salesperson: document.getElementById("add_salesperson").value.trim(),
-      refundDate: document.getElementById("add_refundDate").value,
-      refundAmount: num(document.getElementById("add_refundAmount").value),
-      refundReason: document.getElementById("add_refundReason").value.trim(),
-      architectName: document.getElementById("add_architectName").value.trim(),
-      notes: document.getElementById("add_notes").value.trim()
+  function statusPill(status){
+    const map = {
+      'הזמנה': ['st-ordered','הוזמן'],
+      'סופק': ['st-delivered','סופק'],
+      'פתוח': ['st-open','פתוח'],
+      'סגור': ['st-closed','סגור'],
     };
-    var btn = document.getElementById("saveAddBtn");
-    btn.disabled = true;
-    btn.textContent = "שומר…";
-    try {
-      await graphAddRow(REFUNDS_TABLE, objToRow(payload));
-      closeAddModal();
-      await loadFromGraph();
-    } catch (e) {
-      console.error("add failed", e);
-      btn.disabled = false;
-      btn.textContent = "שמירת רשומה";
-      alertInline("הוספת הרשומה נכשלה. נסו שוב.");
-    }
+    const [cls,label] = map[status] || ['st-delivered', status||'—'];
+    return `<span class="pill ${cls}">${esc(label)}</span>`;
   }
 
-  // =====================================================================
-  // שדה תאריך תמיד dd/mm/yyyy (לא תלוי בדפדפן/מערכת הפעלה)
-  // =====================================================================
-  function enhanceDateField(id) {
-    var native = document.getElementById(id);
+  function renderStats(){
+    const s = computeStats(orders);
+    const tiles = [
+      {label:'הזמנות פתוחות לטיפול', value:String(s.openCount), cls:s.openCount>0?'warn':''},
+      {label:'סה״כ ערך הזמנות', value:fmtMoney(s.totalOrders), cls:''},
+      {label:'יתרת גבייה מלקוחות', value:fmtMoney(s.custBalance), cls:s.custBalance>0?'warn':'good'},
+      {label:'עמלות ממתינות לתשלום', value:fmtMoney(s.archPending), cls:s.archPending>0?'warn':'good'},
+      {label:'עמלות ששולמו לאדריכלים', value:fmtMoney(s.archPaid), cls:'good'},
+      {label:'תקציב שיווק לאדריכלים (סה״כ)', value:fmtMoney(s.marketingTotal), cls:''},
+      {label:'תקציב שיווק שמומש (סה״כ)', value:fmtMoney(s.marketingUsedTotal), cls:'good'},
+      {label:'יתרה למימוש', value:fmtMoney(s.marketingRemaining), cls:s.marketingRemaining>0?'warn':'good'},
+      {label:'הזמנות עם הודעות חסרות', value:String(s.notifyPending), cls:s.notifyPending>0?'warn':'good'},
+    ];
+    document.getElementById('stats').innerHTML = tiles.map(t=>
+      `<div class="stat-tile ${t.cls}"><div class="label">${esc(t.label)}</div><div class="value">${t.value}</div></div>`
+    ).join('');
+  }
+
+  function renderArchitects(){
+    let groups = computeArchitects(orders);
+    const totalCount = groups.length;
+    if (architectSearchText.trim()){
+      const t = architectSearchText.trim().toLowerCase();
+      groups = groups.filter(g=>
+        String(g.name||'').toLowerCase().includes(t) ||
+        String(g.number||'').toLowerCase().includes(t) ||
+        g.realizations.some(r=>String(r.method||'').toLowerCase().includes(t))
+      );
+    }
+    document.getElementById('architectCount').textContent = totalCount
+      ? (groups.length===totalCount ? `${totalCount} אדריכלים פעילים` : `${groups.length} מתוך ${totalCount} אדריכלים`)
+      : '';
+    document.getElementById('architectBody').innerHTML = groups.length ? groups.map(g=>`
+      <tr>
+        <td>${esc(g.name)}${g.number?`<div class="sub">${esc(g.number)}</div>`:''}</td>
+        <td class="num">${g.count}</td>
+        <td class="num">${fmtMoney(g.sales)}</td>
+        <td class="num">${fmtMoney(g.bonus)}</td>
+        <td class="num">${fmtMoney(g.paid)}</td>
+        <td class="num ${g.balance>0?'due':''}">${fmtMoney(g.balance)}</td>
+        <td class="num">${fmtMoney(g.marketing)}</td>
+        <td class="num">${fmtMoney(g.realized)}</td>
+        <td class="num ${g.remaining>0?'due':''}">${fmtMoney(g.remaining)}</td>
+        <td class="actions"><button type="button" class="icon-btn" data-arch-edit="${esc(g.docId)}" title="ניהול תקציב שיווק">✎</button></td>
+      </tr>`).join('') : `<tr><td colspan="10" class="muted" style="text-align:center;padding:18px;">${totalCount ? 'לא נמצא אדריכל התואם את החיפוש.' : 'אין עדיין נתונים להצגה.'}</td></tr>`;
+  }
+
+  function updateArchitectOptions(){
+    const names = [...new Set(orders.map(o=>o.architectName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    const sel = document.getElementById('filterArchitect');
+    const current = filterArchitect;
+    sel.innerHTML = '<option value="all">כל האדריכלים</option>' + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    if (names.includes(current)) sel.value = current; else { sel.value='all'; filterArchitect='all'; }
+
+    document.getElementById('architectNames').innerHTML = names.map(n=>`<option value="${esc(n)}">`).join('');
+
+    const customerNames = [...new Set(orders.map(o=>o.customerName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    document.getElementById('customerNames').innerHTML = customerNames.map(n=>`<option value="${esc(n)}">`).join('');
+
+    const methods = [...new Set(Object.values(architectMeta).flatMap(m=>(m.realizations||[]).map(r=>r.method)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+    document.getElementById('realizationMethods').innerHTML = methods.map(m=>`<option value="${esc(m)}">`).join('');
+  }
+
+  function notifyCell(o){
+    const items = [
+      {key:'quoteNotified', label:'הצעה', abbr:'הצ'},
+      {key:'orderNotified', label:'הזמנה', abbr:'הז'},
+      {key:'benefitNotified', label:'הטבה', abbr:'הט'},
+    ];
+    return `<div class="notify-cell">${items.map(it=>{
+      const done = !!o[it.key];
+      return `<button type="button" class="ntoggle ${done?'done':'pending'}" data-field="${it.key}" title="${it.label}: ${done?'בוצע — לחצו לסימון כלא בוצע':'לא בוצע — לחצו לסימון כבוצע'}" aria-label="הודעת ${it.label}: ${done?'בוצע':'לא בוצע'}">${esc(it.abbr)}</button>`;
+    }).join('')}</div>`;
+  }
+
+  function moneyCustomerCell(o){
+    const amt = num(o.orderAmount), paid = num(o.paidByCustomer);
+    const short = paid < amt;
+    return `<div class="money-cell">
+      <div>${fmtMoney(amt)}</div>
+      <div class="sub ${short?'due':''}">שולם: ${fmtMoney(paid)}</div>
+    </div>`;
+  }
+
+  function moneyArchitectCell(o){
+    const bonus = num(o.bonusBudget), paid = num(o.paidToArchitect);
+    const balance = bonus - paid;
+    return `<div class="money-cell">
+      <div>${fmtMoney(bonus)}</div>
+      <div class="sub">שולם: ${fmtMoney(paid)}</div>
+      <div class="sub ${balance>0?'due':''}">יתרה: ${fmtMoney(balance)}</div>
+    </div>`;
+  }
+
+  function orderRowHtml(o){
+    const isOpen = expandedIds.has(o.id);
+    const mainRow = `<tr data-id="${esc(o.id)}">
+      <td>${fmtDate(o.date)}</td>
+      <td>${esc(o.customerName)||'—'}${o.isExample?'<span class="tag-example">לדוגמה</span>':''}${o.customerNumber?`<div class="sub">${esc(o.customerNumber)}</div>`:''}</td>
+      <td>${esc(o.architectName)||'—'}${o.architectNumber?`<div class="sub">${esc(o.architectNumber)}</div>`:''}</td>
+      <td>${esc(o.orderNumber)||'—'}</td>
+      <td>${statusPill(o.orderStatus)}</td>
+      <td>${notifyCell(o)}</td>
+      <td>${moneyCustomerCell(o)}</td>
+      <td>${moneyArchitectCell(o)}</td>
+      <td>${statusPill(o.handlingStatus)}</td>
+      <td class="actions">
+        <button type="button" class="icon-btn" data-action="toggle" title="פרטים">${isOpen?'˄':'˅'}</button>
+        <button type="button" class="icon-btn" data-action="edit" title="עריכה">✎</button>
+        <button type="button" class="icon-btn danger" data-action="delete" title="מחיקה">🗑</button>
+      </td>
+    </tr>`;
+    if (!isOpen) return mainRow;
+    const detailRow = `<tr class="detail-row"><td colspan="10">
+      <div class="detail-grid">
+        <div><b>מספר הצעת מחיר:</b> ${esc(o.quoteNumber)||'—'}</div>
+        <div><b>זיכויים והחזרים ללקוח:</b> ${fmtMoney(o.customerCredits)}</div>
+        <div><b>תקציב שיווק לאדריכל (מהזמנה זו):</b> ${fmtMoney(o.marketingBudget)}</div>
+      </div>
+    </td></tr>`;
+    return mainRow + detailRow;
+  }
+
+  function renderOrdersTable(){
+    const filtered = getSorted(getFiltered());
+    document.getElementById('ordersBody').innerHTML = filtered.map(orderRowHtml).join('');
+    document.getElementById('emptyState').hidden = filtered.length>0;
+    document.getElementById('btnClearExamples').hidden = !orders.some(o=>o.isExample);
+
+    document.querySelectorAll('#ordersTable thead th[data-key]').forEach(th=>{
+      th.classList.remove('sorted-asc','sorted-desc');
+      if (th.dataset.key===sortKey) th.classList.add(sortDir==='asc'?'sorted-asc':'sorted-desc');
+    });
+  }
+
+  function render(){
+    renderStats();
+    renderArchitects();
+    updateArchitectOptions();
+    renderOrdersTable();
+    refreshArchitectModalIfOpen();
+  }
+
+  function renderRealizationsList(realizations){
+    const tbody = document.getElementById('realizationsBody');
+    tbody.innerHTML = realizations.length ? realizations.map(r=>`
+      <tr data-id="${esc(r.id)}">
+        <td class="num">${fmtMoney(r.amount)}</td>
+        <td>${esc(r.method)||'—'}</td>
+        <td class="actions"><button type="button" class="icon-btn danger" data-del-realization="${esc(r.id)}" title="מחיקה">🗑</button></td>
+      </tr>`).join('') : `<tr><td colspan="3" class="muted" style="text-align:center;padding:14px;">אין עדיין מימושים רשומים.</td></tr>`;
+  }
+
+  function openArchitectModal(docId){
+    const groups = computeArchitects(orders);
+    const g = groups.find(x=>x.docId===docId);
+    if (!g) return;
+    currentArchModalKey = g.key;
+    currentArchModalName = g.name;
+    currentArchModalNumber = g.number;
+    document.getElementById('architectModalTitle').textContent = `תקציב שיווק — ${g.name}`;
+    document.getElementById('archSummaryEarned').textContent = fmtMoney(g.marketing);
+    document.getElementById('archSummaryUsed').textContent = fmtMoney(g.realized);
+    document.getElementById('archSummaryRemaining').textContent = fmtMoney(g.remaining);
+    renderRealizationsList(g.realizations);
+    document.getElementById('realizationForm').reset();
+    document.getElementById('architectModalOverlay').hidden = false;
+  }
+
+  function refreshArchitectModalIfOpen(){
+    if (!currentArchModalKey) return;
+    if (document.getElementById('architectModalOverlay').hidden) return;
+    const groups = computeArchitects(orders);
+    const g = groups.find(x=>x.key===currentArchModalKey);
+    if (!g) return;
+    document.getElementById('archSummaryEarned').textContent = fmtMoney(g.marketing);
+    document.getElementById('archSummaryUsed').textContent = fmtMoney(g.realized);
+    document.getElementById('archSummaryRemaining').textContent = fmtMoney(g.remaining);
+    renderRealizationsList(g.realizations);
+  }
+
+  function closeArchitectModal(){
+    document.getElementById('architectModalOverlay').hidden = true;
+    currentArchModalKey = null;
+  }
+
+  function openNew(){
+    editingId = null;
+    bonusManuallyEdited = false;
+    marketingManuallyEdited = false;
+    document.getElementById('modalTitle').textContent = 'הזמנה חדשה';
+    const form = document.getElementById('orderForm');
+    form.reset();
+    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-orderStatus').value = 'הזמנה';
+    document.getElementById('f-handlingStatus').value = 'פתוח';
+    document.getElementById('f-bonusBudget').value = '';
+    document.getElementById('f-marketingBudget').value = '';
+    applyArchitectLock(null);
+    handleOrderNumberInput();
+    document.getElementById('modalOverlay').hidden = false;
+    document.getElementById('f-customerName').focus();
+  }
+
+  function openEdit(id){
+    const o = orders.find(x=>x.id===id);
+    if (!o) return;
+    editingId = id;
+    bonusManuallyEdited = true;
+    marketingManuallyEdited = true;
+    document.getElementById('modalTitle').textContent = 'עריכת הזמנה';
+    const form = document.getElementById('orderForm');
+    form.reset();
+    for (const key of ['date','customerNumber','customerName','architectName','architectNumber','quoteNumber','quoteNotified','orderNumber','orderAmount','orderNotified','orderStatus','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect','benefitNotified','handlingStatus']){
+      const el = document.getElementById('f-'+key);
+      if (!el) continue;
+      if (el.type==='checkbox') el.checked = !!o[key];
+      else el.value = o[key] ?? '';
+    }
+    handleArchitectNameInput();
+    handleOrderNumberInput();
+    document.getElementById('modalOverlay').hidden = false;
+  }
+
+  function closeModal(){
+    document.getElementById('modalOverlay').hidden = true;
+    editingId = null;
+  }
+
+  // Wraps a native <input type="date"> with a freely-typeable dd/mm/yyyy text field
+  // plus a small calendar button that opens the native picker. The native input
+  // itself is kept in the DOM (shrunk to an invisible 1x1px proxy) purely so every
+  // existing place in the code that reads/writes `el.value` keeps working exactly as
+  // before - typing in the visible field, or picking a date from the calendar, both
+  // end up setting the native input's value and firing its 'change' event.
+  function enhanceDateField(id){
+    const native = document.getElementById(id);
     if (!native || native.dataset.dateEnhanced) return;
     native.dataset.dateEnhanced = '1';
-    var wrap = document.createElement('span');
+
+    const wrap = document.createElement('span');
     wrap.className = 'date-field';
     native.parentNode.insertBefore(wrap, native);
     wrap.appendChild(native);
     native.classList.add('date-native-proxy');
     native.tabIndex = -1;
 
-    var display = document.createElement('input');
-    display.type = 'text'; display.className = 'date-display';
-    display.placeholder = 'dd/mm/yyyy'; display.inputMode = 'numeric';
-    display.autocomplete = 'off'; display.maxLength = 10;
+    const display = document.createElement('input');
+    display.type = 'text';
+    display.className = 'date-display';
+    display.placeholder = 'dd/mm/yyyy';
+    display.inputMode = 'numeric';
+    display.autocomplete = 'off';
+    display.maxLength = 10;
     wrap.appendChild(display);
 
-    var pickBtn = document.createElement('button');
-    pickBtn.type = 'button'; pickBtn.className = 'date-pick-btn';
+    const pickBtn = document.createElement('button');
+    pickBtn.type = 'button';
+    pickBtn.className = 'date-pick-btn';
     pickBtn.setAttribute('aria-label', 'בחירת תאריך מלוח שנה');
     pickBtn.textContent = '📅';
     wrap.appendChild(pickBtn);
 
-    function isoToDisplay(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? (m[3] + '/' + m[2] + '/' + m[1]) : ''; }
-    function displayToIso(t) { var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((t || '').trim()); return m ? (m[3] + '-' + m[2] + '-' + m[1]) : ''; }
-    function syncFromNative() { display.value = isoToDisplay(native.value); }
+    function isoToDisplay(iso){
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? (m[3] + '/' + m[2] + '/' + m[1]) : '';
+    }
+    function displayToIso(text){
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((text || '').trim());
+      return m ? (m[3] + '-' + m[2] + '-' + m[1]) : '';
+    }
+    function syncFromNative(){ display.value = isoToDisplay(native.value); }
     syncFromNative();
+
     native.addEventListener('change', syncFromNative);
     native.addEventListener('input', syncFromNative);
-    try {
-      var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+
+    try{
+      const valueDesc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
       Object.defineProperty(native, 'value', {
         configurable: true,
-        get: function () { return d.get.call(native); },
-        set: function (v) { d.set.call(native, v); syncFromNative(); }
+        get(){ return valueDesc.get.call(native); },
+        set(v){ valueDesc.set.call(native, v); syncFromNative(); }
       });
-    } catch (e) {}
-    display.addEventListener('input', function () {
-      var digits = display.value.replace(/\D/g, '').slice(0, 8);
-      var out = digits;
-      if (digits.length > 4) out = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
-      else if (digits.length > 2) out = digits.slice(0, 2) + '/' + digits.slice(2);
+    } catch(e){ /* if this ever fails, the 'change'/'input' listeners above still cover normal usage */ }
+
+    // Auto-insert the slashes as the user types digits.
+    display.addEventListener('input', ()=>{
+      const digits = display.value.replace(/\D/g,'').slice(0,8);
+      let out = digits;
+      if (digits.length > 4) out = digits.slice(0,2) + '/' + digits.slice(2,4) + '/' + digits.slice(4);
+      else if (digits.length > 2) out = digits.slice(0,2) + '/' + digits.slice(2);
       display.value = out;
     });
-    function commit() {
-      var text = display.value.trim();
-      if (!text) { native.value = ''; native.dispatchEvent(new Event('change', { bubbles: true })); return; }
-      var iso = displayToIso(text);
-      if (iso) { native.value = iso; native.dispatchEvent(new Event('change', { bubbles: true })); }
-      else syncFromNative();
+    function commitDisplay(){
+      const text = display.value.trim();
+      if (!text){
+        native.value = '';
+        native.dispatchEvent(new Event('change', {bubbles:true}));
+        return;
+      }
+      const iso = displayToIso(text);
+      if (iso){
+        native.value = iso;
+        native.dispatchEvent(new Event('change', {bubbles:true}));
+      } else {
+        syncFromNative(); // invalid input - revert to the last known-good value
+      }
     }
-    display.addEventListener('change', commit);
-    display.addEventListener('blur', commit);
-    pickBtn.addEventListener('click', function () {
-      if (typeof native.showPicker === 'function') { try { native.showPicker(); return; } catch (e) {} }
-      try { native.focus(); native.click(); } catch (e) {}
+    display.addEventListener('change', commitDisplay);
+    display.addEventListener('blur', commitDisplay);
+
+    pickBtn.addEventListener('click', ()=>{
+      if (typeof native.showPicker === 'function'){
+        try{ native.showPicker(); return; } catch(e){}
+      }
+      try{ native.focus(); native.click(); } catch(e){}
     });
   }
 
-  // =====================================================================
-  // Boot
-  // =====================================================================
-  function bindEvents() {
-    document.getElementById('btnSignIn').addEventListener('click', signInWithMicrosoft);
-    document.getElementById('btnSignOut').addEventListener('click', signOutMicrosoft);
-    fillDatalist(ARCHITECT_SUGGESTIONS_ID, []);
-    fillDatalist(SALES_SUGGESTIONS_ID, []);
-    fillDatalist(REASON_SUGGESTIONS_ID, []);
-    wireFilters();
-    enhanceDateField('fDateFrom');
-    enhanceDateField('fDateTo');
-    document.getElementById('openAddBtn').addEventListener('click', openAddModal);
-    document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
-    wireScrollTopButton();
-    render();
+  function bindEvents(){
+    enhanceDateField('f-date');
+    enhanceDateField('filterDateFrom');
+    enhanceDateField('filterDateTo');
+
+    const backToTopBtn = document.getElementById('btnBackToTop');
+    window.addEventListener('scroll', ()=>{ backToTopBtn.hidden = window.scrollY < 300; }, { passive: true });
+    backToTopBtn.addEventListener('click', ()=>{ window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    document.getElementById('btnNew').addEventListener('click', openNew);
+    document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', e=>{
+      if (e.target.id==='modalOverlay') closeModal();
+    });
+    document.getElementById('btnCloseArchitectModal').addEventListener('click', closeArchitectModal);
+    document.getElementById('architectModalOverlay').addEventListener('click', e=>{
+      if (e.target.id==='architectModalOverlay') closeArchitectModal();
+    });
+    document.addEventListener('keydown', e=>{
+      if (e.key!=='Escape') return;
+      if (!document.getElementById('confirmOverlay').hidden) { resolveConfirm(false); return; }
+      if (!document.getElementById('modalOverlay').hidden) closeModal();
+      if (!document.getElementById('architectModalOverlay').hidden) closeArchitectModal();
+    });
+
+    document.getElementById('btnConfirmOk').addEventListener('click', ()=>resolveConfirm(true));
+    document.getElementById('btnConfirmCancel').addEventListener('click', ()=>resolveConfirm(false));
+    document.getElementById('confirmOverlay').addEventListener('click', e=>{
+      if (e.target.id==='confirmOverlay') resolveConfirm(false);
+    });
+
+    document.getElementById('architectBody').addEventListener('click', e=>{
+      const btn = e.target.closest('button[data-arch-edit]');
+      if (!btn) return;
+      openArchitectModal(btn.dataset.archEdit);
+    });
+
+    document.getElementById('realizationForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      if (!currentArchModalKey) return;
+      const amount = document.getElementById('f-realizationAmount').value;
+      const method = document.getElementById('f-realizationMethod').value;
+      addRealization(currentArchModalKey, currentArchModalName, currentArchModalNumber, amount, method);
+      document.getElementById('realizationForm').reset();
+    });
+
+    document.getElementById('realizationsBody').addEventListener('click', async e=>{
+      const btn = e.target.closest('button[data-del-realization]');
+      if (!btn || !currentArchModalKey) return;
+      if (await showConfirm('למחוק את המימוש?')) deleteRealization(currentArchModalKey, btn.dataset.delRealization);
+    });
+
+    document.getElementById('btnClearExamples').addEventListener('click', async ()=>{
+      if (await showConfirm('להסיר את כל נתוני הדוגמה?')) clearExamples();
+    });
+
+    document.getElementById('btnMsSignIn').addEventListener('click', signInWithMicrosoft);
+    document.getElementById('btnSkipSignIn').addEventListener('click', ()=>{
+      document.getElementById('msGateOverlay').hidden = true;
+      initLocalFallback();
+    });
+    document.getElementById('btnMsSignOut').addEventListener('click', signOutMicrosoft);
+
+    function recalcMarketingBudget(){
+      if (marketingManuallyEdited) return;
+      const amt = num(document.getElementById('f-orderAmount').value);
+      const credits = num(document.getElementById('f-customerCredits').value);
+      if (amt<=0 && credits<=0){
+        document.getElementById('f-marketingBudget').value = '';
+        return;
+      }
+      const val = amt*MARKETING_RATE - credits*CREDIT_CLAWBACK_RATE;
+      document.getElementById('f-marketingBudget').value = val.toFixed(2);
+    }
+
+    document.getElementById('f-orderAmount').addEventListener('input', e=>{
+      const amt = num(e.target.value);
+      if (!bonusManuallyEdited){
+        document.getElementById('f-bonusBudget').value = amt>0 ? (amt*BONUS_RATE).toFixed(2) : '';
+      }
+      recalcMarketingBudget();
+    });
+    document.getElementById('f-customerCredits').addEventListener('input', recalcMarketingBudget);
+    document.getElementById('f-bonusBudget').addEventListener('input', ()=>{ bonusManuallyEdited = true; });
+    document.getElementById('f-marketingBudget').addEventListener('input', ()=>{ marketingManuallyEdited = true; });
+
+    document.getElementById('f-architectName').addEventListener('input', handleArchitectNameInput);
+    document.getElementById('f-architectNumber').addEventListener('input', handleArchitectNumberInput);
+    document.getElementById('btnUnlockArchNumber').addEventListener('click', ()=>{
+      applyArchitectLock(null);
+      document.getElementById('f-architectNumber').focus();
+    });
+    document.getElementById('f-customerNumber').addEventListener('input', handleCustomerNumberInput);
+    document.getElementById('f-customerName').addEventListener('input', handleCustomerNameInput);
+    document.getElementById('f-orderNumber').addEventListener('input', handleOrderNumberInput);
+
+    document.getElementById('btnExportExcel').addEventListener('click', exportOrdersToExcel);
+
+    document.getElementById('orderForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const data = {};
+      const numericFields = new Set(['orderAmount','paidByCustomer','customerCredits','bonusBudget','marketingBudget','paidToArchitect']);
+      const booleanFields = ['quoteNotified','orderNotified','benefitNotified'];
+      for (const [key,val] of fd.entries()){
+        if (booleanFields.includes(key)) continue;
+        data[key] = numericFields.has(key) ? num(val) : val;
+      }
+      booleanFields.forEach(key=>{ data[key] = form.querySelector('#f-'+key).checked; });
+
+      const orderNumber = String(data.orderNumber||'').trim();
+      if (orderNumber){
+        const dup = orders.find(o => o.id!==editingId && String(o.orderNumber||'').trim() === orderNumber);
+        if (dup){
+          const ok = await showConfirm(
+            `כבר קיימת הזמנה עם מספר "${orderNumber}" (לקוח: ${dup.customerName||'—'}, תאריך: ${fmtDate(dup.date)}). לשמור בכל זאת?`
+          );
+          if (!ok) return; // modal stays open so the number can be corrected
+        }
+      }
+
+      saveOrder(data);
+      closeModal();
+    });
+
+    document.getElementById('search').addEventListener('input', e=>{ filterText = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterArchitect').addEventListener('change', e=>{ filterArchitect = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterOrderStatus').addEventListener('change', e=>{ filterOrderStatus = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterDateFrom').addEventListener('change', e=>{ filterDateFrom = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterDateTo').addEventListener('change', e=>{ filterDateTo = e.target.value; renderOrdersTable(); });
+    document.getElementById('architectSearch').addEventListener('input', e=>{ architectSearchText = e.target.value; renderArchitects(); });
+    document.getElementById('chipHandling').addEventListener('click', e=>{
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      filterHandling = btn.dataset.value;
+      document.querySelectorAll('#chipHandling .chip').forEach(c=>c.classList.toggle('active', c===btn));
+      renderOrdersTable();
+    });
+    document.getElementById('filterProcessState').addEventListener('change', e=>{ filterProcessState = e.target.value; renderOrdersTable(); });
+    document.getElementById('filterNotifyStatus').addEventListener('change', e=>{ filterNotifyStatus = e.target.value; renderOrdersTable(); });
+
+    document.querySelectorAll('#ordersTable thead th[data-key]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.key;
+        if (sortKey===key) sortDir = sortDir==='asc' ? 'desc' : 'asc';
+        else { sortKey = key; sortDir = key==='date' ? 'desc' : 'asc'; }
+        renderOrdersTable();
+      });
+    });
+
+    document.getElementById('ordersBody').addEventListener('click', async e=>{
+      const ntoggle = e.target.closest('.ntoggle');
+      if (ntoggle){
+        const tr = e.target.closest('tr[data-id]');
+        toggleNotified(tr.dataset.id, ntoggle.dataset.field);
+        return;
+      }
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const tr = e.target.closest('tr[data-id]');
+      const id = tr.dataset.id;
+      if (btn.dataset.action==='edit') openEdit(id);
+      else if (btn.dataset.action==='delete'){
+        if (await showConfirm('למחוק את ההזמנה? הפעולה אינה הפיכה.')) deleteOrder(id);
+      } else if (btn.dataset.action==='toggle'){
+        if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+        renderOrdersTable();
+      }
+    });
   }
 
-  // =====================================================================
-  // כפתור חזרה לראש הדף
-  // =====================================================================
-  function wireScrollTopButton() {
-    var btn = document.getElementById('scrollTopBtn');
-    if (!btn) return;
-    window.addEventListener('scroll', function () {
-      if (window.scrollY > 280) btn.classList.add('show');
-      else btn.classList.remove('show');
-    });
-    btn.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-
-  // =====================================================================
-  // ייצוא לאקסל (לפי התצוגה הנוכחית - עם הסינון וה-מיון הפעילים)
-  // =====================================================================
-  function exportToExcel() {
-    if (!window.XLSX) { alertInline("ספריית הייצוא לא נטענה. נסו לרענן את הדף."); return; }
-    var list = getSorted(getFiltered());
-    var headers = ["מס' לקוח", "שם לקוח", "סכום עסקה", "איש מכירות", "תאריך החזר",
-                    "סכום להחזר", "סיבת החזר", "שם אדריכל", "הערות"];
-    var rows = list.map(function (r) {
-      return [
-        r.customerCode || "", r.customerName || "", r.transactionAmount,
-        r.salesperson || "", r.refundDate || "", r.refundAmount,
-        r.refundReason || "", r.architectName || "", r.notes || ""
-      ];
-    });
-    var ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
-    ws['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 13 }, { wch: 12 }, { wch: 13 }, { wch: 13 }, { wch: 22 }, { wch: 26 }, { wch: 30 }];
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "החזרים");
-    var stamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, "החזרי_לקוחות_" + stamp + ".xlsx");
-  }
-
-  function boot() {
+  if (window.top !== window.self){
+    // Loaded inside an iframe (e.g. an in-app link preview) - Microsoft sign-in
+    // refuses to run there ("block_nested_popups"). Force opening at the top level.
+    const appEl = document.querySelector('.app');
+    if (appEl){
+      appEl.innerHTML = '<div style="padding:70px 20px;text-align:center;font-family:var(--font-body,sans-serif);direction:rtl;max-width:480px;margin:0 auto;">'
+        + '<p style="font-size:18px;margin:0 0 20px;color:var(--text,#2a2019);">הקישור נפתח כרגע בתוך חלון מוטבע, ומיקרוסופט לא מאפשרת התחברות במצב כזה.</p>'
+        + '<a href="' + location.href + '" target="_top" style="display:inline-block;padding:12px 26px;background:var(--accent,#a9762c);color:var(--accent-fg,#fff);border-radius:8px;text-decoration:none;font-weight:600;">פתחו בכרטיסייה נפרדת</a>'
+        + '</div>';
+    }
+  } else {
     bindEvents();
     init();
-  }
-
-  if (window.top !== window.self) {
-    // נטען בתוך iframe (למשל תצוגה מקדימה) - ההתחברות עם Microsoft תיכשל שם.
-    document.body.innerHTML = '<p style="padding:60px 20px;text-align:center;font-family:sans-serif;">יש לפתוח את הקישור בכרטיסייה נפרדת.</p>';
-  } else if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
   }
 })();
 </script>
