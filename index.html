@@ -377,6 +377,7 @@
         <tbody id="architectBody"></tbody>
       </table>
     </div>
+    <button type="button" class="btn btn-ghost" id="btnArchitectsShowMore" hidden style="margin-top:10px;"></button>
   </section>
 
   <section class="panel">
@@ -440,6 +441,7 @@
       </table>
     </div>
     <p class="empty-state" id="emptyState" hidden>לא נמצאו הזמנות התואמות את הסינון.</p>
+    <button type="button" class="btn btn-ghost" id="btnOrdersShowMore" hidden style="margin:10px 0;"></button>
     <p class="muted" id="syncNote" style="padding:0 2px 14px;"></p>
   </section>
 
@@ -680,6 +682,14 @@
   let architectSearchText = '';
   let sortKey = 'date';
   let sortDir = 'desc';
+
+  // Both main lists start condensed to a short preview, with a "show all" button to
+  // expand them - keeps the page from turning into one long scroll once there are many
+  // orders/architects, while the full list is always one click away.
+  const ORDERS_PAGE_SIZE = 15;
+  const ARCHITECTS_PAGE_SIZE = 8;
+  let ordersShowAll = false;
+  let architectsShowAll = false;
 
   function num(v){ const n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s){
@@ -1057,10 +1067,43 @@
     for (let i=0;i<rows.length;i++){ if (String(rows[i][0]) === String(id)) return i; }
     return -1;
   }
+  // Resolves a table row's underlying worksheet range, split into its sheet name and
+  // plain cell address (e.g. "Sheet1!A5:H5" -> {sheetName:"Sheet1", cellAddress:"A5:H5"}).
+  // Shared by graphUpdateRowAt and graphDeleteRowAt below, both of which fall back to
+  // operating on this range directly when the table-row-by-index API rejects them.
+  async function resolveRowRange(base, index){
+    const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
+    const address = rangeInfo && rangeInfo.address;
+    if (!address) throw new Error('row-range-not-found');
+    const bangIdx = address.lastIndexOf('!');
+    const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
+    const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
+    const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
+    if (!sheetName) throw new Error('row-sheet-not-found');
+    return { sheetName, cellAddress };
+  }
+
   async function graphUpdateRowAt(tableName, index, values){
-    await graphFetch(driveItemBase() + '/workbook/tables/' + tableName + '/rows/' + index, {
-      method: 'PATCH', body: JSON.stringify({ values: [values] })
-    });
+    const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
+    try{
+      await graphFetch(base + index, {
+        method: 'PATCH', body: JSON.stringify({ values: [values] })
+      });
+    } catch(e1){
+      // Same documented Excel Graph API limitation as the row-delete workaround below
+      // ("ApiNotFound"/co-authoring on a SharePoint-hosted workbook) can also affect
+      // updating a row by index. The fix is the same: write straight into the row's
+      // underlying worksheet range instead of going through the table-row API.
+      try{
+        const { sheetName, cellAddress } = await resolveRowRange(base, index);
+        await graphFetch(
+          driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')",
+          { method: 'PATCH', body: JSON.stringify({ values: [values] }) }
+        );
+      } catch(e2){
+        throw new Error('PATCH failed: [' + e1.message + '] | range update failed: [' + e2.message + ']');
+      }
+    }
   }
   async function graphDeleteRowAt(tableName, index){
     const base = driveItemBase() + '/workbook/tables/' + tableName + '/rows/';
@@ -1074,14 +1117,7 @@
     // fail on this workbook) also keeps the browser console free of the harmless-but
     // -alarming-looking 400 errors those two attempts otherwise log on every delete.
     try{
-      const rangeInfo = await graphFetch(base + 'itemAt(index=' + index + ')/range');
-      const address = rangeInfo && rangeInfo.address;
-      if (!address) throw new Error('row-range-not-found');
-      const bangIdx = address.lastIndexOf('!');
-      const sheetNameRaw = bangIdx > -1 ? address.slice(0, bangIdx) : null;
-      const cellAddress = bangIdx > -1 ? address.slice(bangIdx + 1) : address;
-      const sheetName = sheetNameRaw ? sheetNameRaw.replace(/^'+|'+$/g, '') : null;
-      if (!sheetName) throw new Error('row-sheet-not-found');
+      const { sheetName, cellAddress } = await resolveRowRange(base, index);
       await graphFetch(
         driveItemBase() + '/workbook/worksheets/' + encodeURIComponent(sheetName) + "/range(address='" + encodeURIComponent(cellAddress) + "')/delete",
         { method: 'POST', body: JSON.stringify({ shift: 'Up' }) }
@@ -1625,7 +1661,17 @@
     document.getElementById('architectCount').textContent = totalCount
       ? (groups.length===totalCount ? `${totalCount} אדריכלים פעילים` : `${groups.length} מתוך ${totalCount} אדריכלים`)
       : '';
-    document.getElementById('architectBody').innerHTML = groups.length ? groups.map(g=>`
+
+    const visibleGroups = architectsShowAll ? groups : groups.slice(0, ARCHITECTS_PAGE_SIZE);
+    const moreBtn = document.getElementById('btnArchitectsShowMore');
+    if (groups.length > ARCHITECTS_PAGE_SIZE){
+      moreBtn.hidden = false;
+      moreBtn.textContent = architectsShowAll ? 'הצג פחות' : `הצג את כל ${groups.length} האדריכלים`;
+    } else {
+      moreBtn.hidden = true;
+    }
+
+    document.getElementById('architectBody').innerHTML = visibleGroups.length ? visibleGroups.map(g=>`
       <tr>
         <td>${esc(g.name)}${g.number?`<div class="sub">${esc(g.number)}</div>`:''}</td>
         <td class="num">${g.count}</td>
@@ -1718,9 +1764,18 @@
 
   function renderOrdersTable(){
     const filtered = getSorted(getFiltered());
-    document.getElementById('ordersBody').innerHTML = filtered.map(orderRowHtml).join('');
+    const visible = ordersShowAll ? filtered : filtered.slice(0, ORDERS_PAGE_SIZE);
+    document.getElementById('ordersBody').innerHTML = visible.map(orderRowHtml).join('');
     document.getElementById('emptyState').hidden = filtered.length>0;
     document.getElementById('btnClearExamples').hidden = !orders.some(o=>o.isExample);
+
+    const moreBtn = document.getElementById('btnOrdersShowMore');
+    if (filtered.length > ORDERS_PAGE_SIZE){
+      moreBtn.hidden = false;
+      moreBtn.textContent = ordersShowAll ? 'הצג פחות' : `הצג את כל ${filtered.length} ההזמנות`;
+    } else {
+      moreBtn.hidden = true;
+    }
 
     document.querySelectorAll('#ordersTable thead th[data-key]').forEach(th=>{
       th.classList.remove('sorted-asc','sorted-desc');
@@ -2011,6 +2066,8 @@
     document.getElementById('f-orderNumber').addEventListener('input', handleOrderNumberInput);
 
     document.getElementById('btnExportExcel').addEventListener('click', exportOrdersToExcel);
+    document.getElementById('btnOrdersShowMore').addEventListener('click', ()=>{ ordersShowAll = !ordersShowAll; renderOrdersTable(); });
+    document.getElementById('btnArchitectsShowMore').addEventListener('click', ()=>{ architectsShowAll = !architectsShowAll; renderArchitects(); });
 
     document.getElementById('orderForm').addEventListener('submit', async e=>{
       e.preventDefault();
